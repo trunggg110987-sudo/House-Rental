@@ -75,7 +75,7 @@ public class UserController {
     @GetMapping("/change-password")
     public String showChangePasswordForm(Model model) {
         model.addAttribute("changePassword", new ChangePassword());
-        return "user/change_password";
+        return "user/change-password";
     }
 
     // Xử lý thay đổi mật khẩu
@@ -87,7 +87,7 @@ public class UserController {
             Model model) {
 
         if (bindingResult.hasErrors()) {
-            return "user/change_password";
+            return "user/change-password";
         }
 
         try {
@@ -102,10 +102,10 @@ public class UserController {
             } else {
                 model.addAttribute("errorMessage", e.getMessage());
             }
-            return "user/change_password";
+            return "user/change-password";
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Đã xảy ra lỗi khi thay đổi mật khẩu.");
-            return "user/change_password";
+            return "user/change-password";
         }
     }
 }

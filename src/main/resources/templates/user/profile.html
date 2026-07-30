@@ -50,11 +50,14 @@
                             <div th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" class="invalid-feedback"></div>
                         </div>
 
-                        <!-- Nút Lưu -->
+                        <!-- Nút Lưu & Đổi Mật Khẩu -->
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary py-2 rounded-3 fw-semibold">
                                 <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Thay Đổi
                             </button>
+                            <a th:href="@{/profile/change-password}" class="btn btn-outline-warning text-dark py-2 rounded-3 fw-semibold">
+                                <i class="fa-solid fa-key me-1"></i> Đổi Mật Khẩu
+                            </a>
                         </div>
                     </form>
                 </div>
