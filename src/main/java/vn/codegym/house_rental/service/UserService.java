@@ -1,7 +1,6 @@
 package vn.codegym.house_rental.service;
 
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.codegym.house_rental.model.User;
@@ -23,8 +22,8 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public User save(User user) {
+    public void save(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 }
