@@ -11,12 +11,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.codegym.house_rental.dto.Register;
 import vn.codegym.house_rental.service.UserService;
+import vn.codegym.house_rental.validator.RegisterValidator;
 
 @Controller
 public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RegisterValidator registerValidator;
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
@@ -31,20 +35,7 @@ public class AuthController {
             RedirectAttributes redirectAttributes,
             Model model) {
 
-        // 1. Kiểm tra mật khẩu xác nhận
-        if (register.getPassword() != null && !register.getPassword().equals(register.getConfirmPassword())) {
-            bindingResult.rejectValue("confirmPassword", "error.confirmPassword", "Mật khẩu xác nhận không khớp");
-        }
-
-        // 2. Kiểm tra trùng tên đăng nhập
-        if (register.getUsername() != null && userService.findByUsername(register.getUsername()).isPresent()) {
-            bindingResult.rejectValue("username", "error.username", "Tên đăng nhập đã tồn tại trong hệ thống");
-        }
-
-        // 3. Kiểm tra trùng email
-        if (register.getEmail() != null && userService.existsByEmail(register.getEmail())) {
-            bindingResult.rejectValue("email", "error.email", "Email này đã được đăng ký bởi tài khoản khác");
-        }
+        registerValidator.validate(register, bindingResult);
 
         // 4. Nếu có bất kỳ lỗi nào -> trả về trang đăng ký
         if (bindingResult.hasErrors()) {

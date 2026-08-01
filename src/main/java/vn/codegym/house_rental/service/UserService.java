@@ -1,10 +1,12 @@
 package vn.codegym.house_rental.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import vn.codegym.house_rental.dto.ChangePassword;
 import vn.codegym.house_rental.dto.Register;
 import vn.codegym.house_rental.dto.UserProfile;
+import vn.codegym.house_rental.exception.UserRegistrationException;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.UserRepository;
 import java.util.Optional;
@@ -36,15 +38,21 @@ public class UserService {
     }
 
     public User registerUser(Register register) {
-        User user = User.builder()
-                .username(register.getUsername())
-                .password(register.getPassword())
-                .fullName(register.getFullName())
-                .email(register.getEmail())
-                .phone(register.getPhone())
-                .role(User.Role.ROLE_USER)
-                .build();
-        return userRepository.save(user);
+        try {
+            User user = User.builder()
+                    .username(register.getUsername())
+                    .password(register.getPassword())
+                    .fullName(register.getFullName())
+                    .email(register.getEmail())
+                    .phone(register.getPhone())
+                    .role(User.Role.ROLE_USER)
+                    .build();
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserRegistrationException("Dữ liệu đăng ký không hợp lệ hoặc đã tồn tại trong hệ thống.", e);
+        } catch (Exception e) {
+            throw new UserRegistrationException("Đã xảy ra lỗi hệ thống khi đăng ký tài khoản.", e);
+        }
     }
 
     public User updateProfile(String username, UserProfile userProfile) {
