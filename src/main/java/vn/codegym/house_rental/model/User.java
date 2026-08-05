@@ -22,8 +22,6 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Column(nullable = false)
     private String password;
 
     @NotBlank(message = "Họ tên không được để trống")
@@ -34,6 +32,13 @@ public class User {
 
     private String phone;
 
+    private String avatar;
+
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider;
+
+    private String providerId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -42,5 +47,11 @@ public class User {
         ROLE_USER,
         ROLE_HOST,
         ROLE_ADMIN
+    }
+
+    public enum AuthProvider {
+        LOCAL,
+        GOOGLE,
+        FACEBOOK
     }
 }

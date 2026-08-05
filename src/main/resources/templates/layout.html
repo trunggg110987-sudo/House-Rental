@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:fragment="mainLayout(title, content)">
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="mainLayout(title, content)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,12 +87,12 @@
                             <i class="fa-solid fa-compass me-1"></i> Khám Phá Nhà
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
                         <a class="nav-link fw-semibold" th:href="@{/bookings/my-bookings}">
                             <i class="fa-solid fa-calendar-check me-1"></i> Đơn Thuê Của Tôi
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
                         <a class="nav-link fw-semibold" th:href="@{/bookings/host-requests}">
                             <i class="fa-solid fa-user-shield me-1"></i> Duyệt Đặt Nhà (Chủ Nhà)
                         </a>
@@ -100,6 +102,31 @@
                     <a th:href="@{/houses/create}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                         <i class="fa-solid fa-plus me-1"></i> Đăng Tin Cho Thuê
                     </a>
+
+                    <!-- Guest Mode (Not Logged In) -->
+                    <div sec:authorize="!isAuthenticated()">
+                        <a th:href="@{/login}" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i> Đăng Nhập
+                        </a>
+                    </div>
+
+                    <!-- Authenticated User Menu -->
+                    <div sec:authorize="isAuthenticated()" class="dropdown">
+                        <button class="btn btn-light btn-sm rounded-pill dropdown-toggle d-flex align-items-center gap-2 border px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-circle-user text-primary fs-5"></i>
+                            <span sec:authentication="name" class="fw-semibold small">Tài khoản</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2">
+                            <li><a class="dropdown-item py-2" th:href="@{/bookings/my-bookings}"><i class="fa-solid fa-list me-2 text-primary"></i> Đơn thuê của tôi</a></li>
+                            <li><a class="dropdown-item py-2" th:href="@{/houses/my-houses}"><i class="fa-solid fa-house me-2 text-primary"></i> Nhà của tôi</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item text-danger py-2 fw-semibold"><i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

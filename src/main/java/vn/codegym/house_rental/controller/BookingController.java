@@ -6,9 +6,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.core.Authentication;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
+import vn.codegym.house_rental.security.CustomUserDetails;
+import vn.codegym.house_rental.security.oauth2.CustomOAuth2User;
 import vn.codegym.house_rental.service.BookingService;
 import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
@@ -28,15 +31,32 @@ public class BookingController {
     @Autowired
     private UserService userService;
 
+    private Optional<User> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails userDetails) {
+            return Optional.of(userDetails.getUser());
+        } else if (principal instanceof CustomOAuth2User oauth2User) {
+            return Optional.of(oauth2User.getUser());
+        }
+        return Optional.empty();
+    }
+
     // Gửi yêu cầu đặt phòng (Renter)
     @PostMapping("/create")
     public String createBooking(
             @RequestParam("houseId") Long houseId,
             @ModelAttribute("booking") Booking booking,
+            Authentication authentication,
             RedirectAttributes redirectAttributes) {
 
         Optional<House> houseOptional = houseService.findById(houseId);
-        Optional<User> renterOptional = userService.findByUsername("user1"); // Renter giả lập
+        Optional<User> renterOptional = getCurrentUser(authentication);
+        if (renterOptional.isEmpty()) {
+            renterOptional = userService.findByUsername("user1");
+        }
 
         if (houseOptional.isPresent() && renterOptional.isPresent()) {
             bookingService.createBooking(houseOptional.get(), renterOptional.get(), booking);
@@ -53,9 +73,14 @@ public class BookingController {
     public String myBookings(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "5") int size,
+            Authentication authentication,
             Model model) {
 
-        Optional<User> renterOptional = userService.findByUsername("user1");
+        Optional<User> renterOptional = getCurrentUser(authentication);
+        if (renterOptional.isEmpty()) {
+            renterOptional = userService.findByUsername("user1");
+        }
+
         if (renterOptional.isPresent()) {
             Page<Booking> bookingPage = bookingService.findByRenter(renterOptional.get(), page, size);
             model.addAttribute("bookings", bookingPage.getContent());
@@ -70,9 +95,14 @@ public class BookingController {
     public String hostRequests(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "5") int size,
+            Authentication authentication,
             Model model) {
 
-        Optional<User> hostOptional = userService.findByUsername("host1");
+        Optional<User> hostOptional = getCurrentUser(authentication);
+        if (hostOptional.isEmpty()) {
+            hostOptional = userService.findByUsername("host1");
+        }
+
         if (hostOptional.isPresent()) {
             Page<Booking> bookingPage = bookingService.findByHost(hostOptional.get(), page, size);
             model.addAttribute("bookings", bookingPage.getContent());

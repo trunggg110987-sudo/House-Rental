@@ -20,6 +20,14 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public Optional<User> findByProviderAndProviderId(User.AuthProvider provider, String providerId) {
+        return userRepository.findByProviderAndProviderId(provider, providerId);
+    }
+
     public User save(User user) {
         return userRepository.save(user);
     }
