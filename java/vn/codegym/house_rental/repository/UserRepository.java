@@ -1,0 +1,30 @@
+package vn.codegym.house_rental.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import vn.codegym.house_rental.model.User;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+
+    boolean existsByUsername(String username);
+
+    // ktra trung email
+    boolean existsByEmail(String email);
+
+    // ktra email o tai khoan khac id
+    boolean existsByEmailAndIdNot(String email, Long id);
+
+    Page<User> findByRole(User.Role role, Pageable pageable);
+
+    Page<User> findByRoleOrHostStatus(
+            User.Role role,
+            User.HostStatus hostStatus,
+            Pageable pageable
+    );
+}

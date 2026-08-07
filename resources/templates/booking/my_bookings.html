@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Lịch sử đơn thuê nhà', ~{::div.main-content})}">
+<body>
+
+<div class="main-content container py-4">
+    <h3 class="fw-bold mb-4 text-primary">
+        <i class="fa-solid fa-calendar-check me-2"></i> Đơn Thuê Nhà Của Tôi
+    </h3>
+
+    <div th:if="${#lists.isEmpty(bookings)}" class="text-center py-5 bg-white rounded-4 shadow-sm">
+        <i class="fa-solid fa-folder-open fs-1 text-muted mb-3"></i>
+        <h5 class="fw-bold text-secondary">Bạn chưa gửi yêu cầu thuê nhà nào</h5>
+        <a th:href="@{/}" class="btn btn-primary rounded-pill px-4 mt-2">Khám Phá Nhà Cho Thuê</a>
+    </div>
+
+    <div th:if="${not #lists.isEmpty(bookings)}" class="card border-0 rounded-4 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Hình Ảnh & Tên Nhà</th>
+                    <th>Thời Gian Thuê</th>
+                    <th>Tổng Số Tiền</th>
+                    <th>Trạng Thái Duyệt</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="b : ${bookings}">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <img th:src="${b.house.thumbnailUrl}" class="rounded-3"
+                                 style="width: 70px; height: 50px; object-fit: cover;">
+                            <div>
+                                <a th:href="@{'/houses/' + ${b.house.id}}"
+                                   class="fw-bold text-dark text-decoration-none" th:text="${b.house.name}"></a>
+                                <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> <span
+                                        th:text="${b.house.address}"></span></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            <div>Từ: <strong th:text="${b.startDate}"></strong></div>
+                            <div>Đến: <strong th:text="${b.endDate}"></strong></div>
+                        </div>
+                    </td>
+                    <td class="fw-bold text-primary"
+                        th:text="${#numbers.formatDecimal(b.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
+                    <td>
+                            <span class="badge px-3 py-2 rounded-pill"
+                                  th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                  th:text="${b.status}">
+                            </span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

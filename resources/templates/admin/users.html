@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout(
+      ~{'Quản lý người dùng'},
+      ~{::content})}">
+
+<th:block th:fragment="content">
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+                <h2 class="fw-bold">
+                    <i class="fa-solid fa-users text-primary me-2"></i>
+                    Quản lý người dùng
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Danh sách tài khoản trong hệ thống
+                </p>
+            </div>
+
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+
+            <div class="card-body">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-primary">
+
+                    <tr>
+
+                        <th>STT</th>
+
+                        <th>Họ và tên</th>
+
+                        <th>Số điện thoại</th>
+
+                        <th>Trạng thái</th>
+
+                        <th class="text-center">
+                            Hành động
+                        </th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="user, stat : ${users.content}">
+
+                        <td th:text="${stat.count + users.number * users.size}"></td>
+
+                        <td th:text="${user.fullName}"></td>
+
+                        <td th:text="${user.phone}"></td>
+
+                        <td>
+
+                            <span
+                                    th:if="${user.active}"
+                                    class="badge bg-success">
+
+                                Đang hoạt động
+
+                            </span>
+
+                            <span th:unless="${user.active}" class="badge bg-danger">
+                                Khóa
+
+              </span>
+
+                        </td>
+
+                        <td class="text-center">
+
+
+                            <a th:href="@{/admin/users/{id}(id=${user.id})}"
+                               class="btn btn-info btn-sm me-1">
+
+                                <i class="fa-solid fa-eye"></i>
+
+                                Chi tiết
+
+                            </a>
+
+                            <form
+                                    th:if="${user.active}"
+                                    th:action="@{/admin/users/{id}/lock(id=${user.id})}"
+                                    method="post">
+
+                                <button
+                                        class="btn btn-warning btn-sm">
+
+                                    <i class="fa-solid fa-lock"></i>
+
+                                    Khóa
+
+                                </button>
+
+                            </form>
+
+                            <form
+                                    th:unless="${user.active}"
+                                    th:action="@{/admin/users/{id}/unlock(id=${user.id})}"
+                                    method="post">
+
+                                <button
+                                        class="btn btn-success btn-sm">
+
+                                    <i class="fa-solid fa-lock-open"></i>
+
+                                    Mở khóa
+
+                                </button>
+
+                            </form>
+
+                        </td>
+
+                    </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+        <nav class="mt-4">
+
+            <ul class="pagination justify-content-center">
+
+                <li class="page-item"
+                    th:classappend="${users.first}? 'disabled'">
+
+                    <a class="page-link"
+                       th:href="@{/admin/users(page=${users.number-1})}">
+
+                        Previous
+
+                    </a>
+
+                </li>
+
+                <li class="page-item"
+
+                    th:each="i : ${#numbers.sequence(0,users.totalPages-1)}"
+
+                    th:classappend="${i==users.number}? 'active'">
+
+                    <a class="page-link"
+
+                       th:text="${i+1}"
+
+                       th:href="@{/admin/users(page=${i})}">
+
+                    </a>
+
+                </li>
+
+                <li class="page-item"
+
+                    th:classappend="${users.last}? 'disabled'">
+
+                    <a class="page-link"
+
+                       th:href="@{/admin/users(page=${users.number+1})}">
+
+                        Next
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </nav>
+
+    </div>
+
+</th:block>
+
+</html>

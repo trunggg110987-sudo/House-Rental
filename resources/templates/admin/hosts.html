@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout(
+      ~{'Quản lý chủ nhà'},
+      ~{::content})}">
+
+<th:block th:fragment="content">
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+                <h2 class="fw-bold">
+                    <i class="fa-solid fa-users text-primary me-2"></i>
+                    Quản lý chủ nhà
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Danh sách chủ nhà trong hệ thống
+                </p>
+            </div>
+
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+
+            <div class="card-body">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-primary">
+                    <tr>
+
+                        <th>STT</th>
+
+                        <th>Họ và tên</th>
+
+                        <th>Số điện thoại</th>
+
+                        <th>Doanh thu</th>
+
+                        <th>Số nhà đang cho thuê</th>
+
+                        <th>Trạng thái</th>
+
+                        <th>Hành động</th>
+
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="dto,stat : ${hostDtos}">
+
+                        <td th:text="${hosts.number * hosts.size + stat.index + 1}"></td>
+
+                        <td th:text="${dto.user.fullName}"></td>
+
+                        <td th:text="${dto.user.phone}"></td>
+
+                        <td th:text="${#numbers.formatDecimal(dto.revenue,0,'COMMA',0,'POINT')} + ' VNĐ'"></td>
+
+                        <td th:text="${dto.totalHouse}"></td>
+
+                        <td>
+
+                            <span
+                                    th:if="${dto.user.active}"
+                                    class="badge bg-success">
+
+                                Đang hoạt động
+
+                            </span>
+
+                            <span
+                                    th:unless="${dto.user.active}"
+                                    class="badge bg-danger">
+
+                                Khóa
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            <a th:href="@{/admin/hosts/{id}(id=${dto.user.id})}"
+                               class="btn btn-info btn-sm">
+
+                                <i class="fa-solid fa-eye"></i>
+
+                                Chi tiết
+
+                            </a>
+                            <form
+                                    th:if="${dto.user.active}"
+                                    th:action="@{/admin/hosts/{id}/lock(id=${dto.user.id})}"
+                                    method="post"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn khóa chủ nhà này?');">
+
+                                <button
+                                        class="btn btn-warning btn-sm">
+
+                                    Khóa
+
+                                </button>
+
+                            </form>
+
+                            <form
+                                    th:unless="${dto.user.active}"
+                                    th:action="@{/admin/hosts/{id}/unlock(id=${dto.user.id})}"
+                                    method="post"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Bạn có chắc chắn muốn mở khóa chủ nhà này?');">
+
+                                <button
+                                        class="btn btn-success btn-sm">
+
+                                    Mở khóa
+
+                                </button>
+
+                            </form>
+
+
+                            <div th:if="${dto.user.hostStatus != null and dto.user.hostStatus.name() == 'PENDING'}"
+                                 class="d-flex gap-2 mt-2">
+                                <form
+                                        th:action="@{/admin/hosts/{id}/approve(id=${dto.user.id})}"
+                                        method="post"
+                                        style="display:inline;">
+
+                                    <button
+                                            type="button"
+                                            class="btn btn-primary btn-sm"
+                                            data-bs-toggle="modal"
+                                            th:data-bs-target="'#approveModal' + ${dto.user.id}">
+
+                                        <i class="fa-solid fa-check me-1"></i>
+                                        Duyệt
+
+                                    </button>
+
+                                </form>
+
+                                <form
+                                        th:action="@{/admin/hosts/{id}/reject(id=${dto.user.id})}"
+                                        method="post"
+                                        style="display:inline;">
+
+                                    <button
+                                            type="button"
+                                            class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal"
+                                            th:data-bs-target="'#rejectModal' + ${dto.user.id}">
+
+                                        <i class="fa-solid fa-xmark me-1"></i>
+                                        Từ chối
+
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    </tbody>
+
+                </table>
+
+                <div th:each="dto : ${hostDtos}">
+
+                    <div class="modal fade"
+                         th:id="'approveModal' + ${dto.user.id}"
+                         tabindex="-1">
+
+                        <div class="modal-dialog">
+
+                            <div class="modal-content rounded-4">
+
+                                <div class="modal-header">
+
+                                    <h5 class="modal-title fw-bold">
+
+                                        <i class="fa-solid fa-circle-check text-primary me-2"></i>
+
+                                        Duyệt đăng ký chủ nhà
+
+                                    </h5>
+
+                                    <button
+                                            type="button"
+                                            class="btn-close"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
+
+                                <form
+                                        th:action="@{/admin/hosts/{id}/approve(id=${dto.user.id})}"
+                                        method="post">
+
+                                    <div class="modal-body">
+
+                                        <p>
+                                            Bạn đang duyệt tài khoản:
+                                            <strong th:text="${dto.user.fullName}"></strong>
+                                        </p>
+
+                                        <label class="form-label fw-semibold">
+                                            Lý do duyệt
+                                        </label>
+
+                                        <textarea
+                                                name="reason"
+                                                class="form-control"
+                                                rows="4"
+                                                required
+                                                placeholder="Nhập lý do duyệt..."></textarea>
+
+                                        <small class="text-muted">
+                                            Lý do sẽ được gửi đến email của chủ nhà.
+                                        </small>
+
+                                    </div>
+
+                                    <div class="modal-footer">
+
+                                        <button
+                                                type="button"
+                                                class="btn btn-secondary"
+                                                data-bs-dismiss="modal">
+
+                                            Hủy
+
+                                        </button>
+
+                                        <button
+                                                type="submit"
+                                                class="btn btn-primary">
+
+                                            <i class="fa-solid fa-check me-1"></i>
+
+                                            Xác nhận duyệt
+
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="modal fade"
+                         th:id="'rejectModal' + ${dto.user.id}"
+                         tabindex="-1">
+
+                        <div class="modal-dialog">
+
+                            <div class="modal-content rounded-4">
+
+                                <div class="modal-header">
+
+                                    <h5 class="modal-title fw-bold">
+
+                                        <i class="fa-solid fa-circle-xmark text-danger me-2"></i>
+
+                                        Từ chối đăng ký chủ nhà
+
+                                    </h5>
+
+                                    <button
+                                            type="button"
+                                            class="btn-close"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
+
+                                <form
+                                        th:action="@{/admin/hosts/{id}/reject(id=${dto.user.id})}"
+                                        method="post">
+
+                                    <div class="modal-body">
+
+                                        <p>
+                                            Bạn đang từ chối tài khoản:
+                                            <strong th:text="${dto.user.fullName}"></strong>
+                                        </p>
+
+                                        <label class="form-label fw-semibold">
+                                            Lý do từ chối
+                                        </label>
+
+                                        <textarea
+                                                name="reason"
+                                                class="form-control"
+                                                rows="4"
+                                                required
+                                                placeholder="Nhập lý do từ chối..."></textarea>
+
+                                        <small class="text-muted">
+                                            Lý do sẽ được gửi đến email của người đăng ký.
+                                        </small>
+
+                                    </div>
+
+                                    <div class="modal-footer">
+
+                                        <button
+                                                type="button"
+                                                class="btn btn-secondary"
+                                                data-bs-dismiss="modal">
+
+                                            Hủy
+
+                                        </button>
+
+                                        <button
+                                                type="submit"
+                                                class="btn btn-danger">
+
+                                            <i class="fa-solid fa-xmark me-1"></i>
+
+                                            Xác nhận từ chối
+
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <nav class="mt-4">
+
+            <ul class="pagination justify-content-center">
+
+                <li class="page-item"
+                    th:classappend="${hosts.first}? 'disabled'">
+
+                    <a class="page-link"
+                       th:href="@{/admin/hosts(page=${hosts.number-1})}">
+
+                        Previous
+
+                    </a>
+
+                </li>
+
+                <li class="page-item"
+                    th:if="${hosts.totalPages > 0}"
+                    th:each="i : ${#numbers.sequence(0, hosts.totalPages - 1)}"
+                    th:classappend="${i == hosts.number} ? 'active'">
+
+                    <a class="page-link"
+
+                       th:text="${i+1}"
+
+                       th:href="@{/admin/hosts(page=${i})}">
+
+                    </a>
+
+                </li>
+
+                <li class="page-item"
+
+                    th:classappend="${hosts.last}? 'disabled'">
+
+                    <a class="page-link"
+
+                       th:href="@{/admin/hosts(page=${hosts.number+1})}">
+
+                        Next
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </nav>
+
+    </div>
+
+</th:block>
+
+</html>
