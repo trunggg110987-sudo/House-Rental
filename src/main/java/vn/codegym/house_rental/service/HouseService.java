@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.HouseRepository;
+
 import java.util.Optional;
 
 @Service
@@ -19,13 +20,7 @@ public class HouseService {
 
     public Page<House> searchHouses(String keyword, Long categoryId, Double minPrice, Double maxPrice, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return houseRepository.searchHouses(
-                (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null,
-                categoryId,
-                minPrice,
-                maxPrice,
-                pageable
-        );
+        return houseRepository.searchHouses((keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null, categoryId, minPrice, maxPrice, pageable);
     }
 
     public Page<House> findByHost(User host, int page, int size) {

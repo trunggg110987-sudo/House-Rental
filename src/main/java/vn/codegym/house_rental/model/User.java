@@ -34,13 +34,30 @@ public class User {
 
     private String phone;
 
+    private String address;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    private HostStatus hostStatus = HostStatus.NONE;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
 
     public enum Role {
         ROLE_USER,
         ROLE_HOST,
         ROLE_ADMIN
+    }
+    public enum HostStatus {
+        NONE,       // Người dùng thường
+        PENDING,    // Đăng ký làm chủ nhà, chờ duyệt
+        APPROVED,   // Đã được duyệt
+        REJECTED    // Bị từ chối
     }
 }

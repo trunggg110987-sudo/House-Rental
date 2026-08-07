@@ -1,5 +1,6 @@
 package vn.codegym.house_rental.controller;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,7 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import vn.codegym.house_rental.dto.Register;
+import vn.codegym.house_rental.dto.Login;
+import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.service.UserService;
 import vn.codegym.house_rental.validator.RegisterValidator;
 
@@ -24,29 +28,57 @@ public class AuthController {
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
+
         model.addAttribute("register", new Register());
+
         return "auth/register";
     }
 
+    @GetMapping("/login")
+    public String showLoginForm(Model model) {
+
+        model.addAttribute("login", new Login());
+
+        return "auth/login";
+    }
+
     @PostMapping("/register")
-    public String registerUser(
-            @Valid @ModelAttribute("register") Register register,
-            BindingResult bindingResult,
-            RedirectAttributes redirectAttributes,
-            Model model) {
+    public String registerUser(@Valid @ModelAttribute("register") Register register, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
 
         registerValidator.validate(register, bindingResult);
 
-        // 4. Nếu có bất kỳ lỗi nào -> trả về trang đăng ký
         if (bindingResult.hasErrors()) {
             return "auth/register";
         }
 
-        // 5. Lưu người dùng mới
         userService.registerUser(register);
 
-        // 6. Thông báo thành công & chuyển hướng
         redirectAttributes.addFlashAttribute("successMessage", "Đăng ký tài khoản thành công! Bạn có thể sử dụng tài khoản mới.");
+
         return "redirect:/";
+    }
+
+    @PostMapping("/login")
+    public String login(@Valid @ModelAttribute("login") Login login, BindingResult bindingResult, Model model, HttpSession session) {
+
+        if (bindingResult.hasErrors()) {
+            return "auth/login";
+        }
+
+        try {
+
+            User user = userService.login(login.getUsername(), login.getPassword());
+
+            // Lưu người dùng đăng nhập vào Session
+            session.setAttribute("currentUser", user);
+
+            return "redirect:/";
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+
+            model.addAttribute("errorMessage", e.getMessage());
+
+            return "auth/login";
+        }
     }
 }

@@ -8,11 +8,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
+import java.util.List;
+import vn.codegym.house_rental.model.User;
 
 @Repository
 public interface HouseRepository extends JpaRepository<House, Long> {
 
     Page<House> findByHost(User host, Pageable pageable);
+    long countByHost(User host);
+
+    List<House> findByHost(User host);
 
     @Query("SELECT h FROM House h WHERE " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
@@ -25,5 +30,6 @@ public interface HouseRepository extends JpaRepository<House, Long> {
             @Param("minPrice") Double minPrice,
             @Param("maxPrice") Double maxPrice,
             Pageable pageable
+
     );
 }

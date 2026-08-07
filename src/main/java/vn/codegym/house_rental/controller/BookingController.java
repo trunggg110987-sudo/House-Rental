@@ -30,10 +30,7 @@ public class BookingController {
 
     // Gửi yêu cầu đặt phòng (Renter)
     @PostMapping("/create")
-    public String createBooking(
-            @RequestParam("houseId") Long houseId,
-            @ModelAttribute("booking") Booking booking,
-            RedirectAttributes redirectAttributes) {
+    public String createBooking(@RequestParam("houseId") Long houseId, @ModelAttribute("booking") Booking booking, RedirectAttributes redirectAttributes) {
 
         Optional<House> houseOptional = houseService.findById(houseId);
         Optional<User> renterOptional = userService.findByUsername("user1"); // Renter giả lập
@@ -50,10 +47,7 @@ public class BookingController {
 
     // Danh sách đơn thuê của Khách (My Bookings)
     @GetMapping("/my-bookings")
-    public String myBookings(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "5") int size,
-            Model model) {
+    public String myBookings(@RequestParam(name = "page", defaultValue = "0") int page, @RequestParam(name = "size", defaultValue = "5") int size, Model model) {
 
         Optional<User> renterOptional = userService.findByUsername("user1");
         if (renterOptional.isPresent()) {
@@ -67,10 +61,7 @@ public class BookingController {
 
     // Quản lý yêu cầu thuê phòng dành cho Chủ nhà (Host Dashboard)
     @GetMapping("/host-requests")
-    public String hostRequests(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "5") int size,
-            Model model) {
+    public String hostRequests(@RequestParam(name = "page", defaultValue = "0") int page, @RequestParam(name = "size", defaultValue = "5") int size, Model model) {
 
         Optional<User> hostOptional = userService.findByUsername("host1");
         if (hostOptional.isPresent()) {

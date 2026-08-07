@@ -1,6 +1,7 @@
 package vn.codegym.house_rental.controller;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,12 +34,7 @@ public class UserController {
         }
 
         User currentUser = userOptional.get();
-        UserProfile userProfile = new UserProfile(
-                currentUser.getUsername(),
-                currentUser.getFullName(),
-                currentUser.getEmail(),
-                currentUser.getPhone()
-        );
+        UserProfile userProfile = new UserProfile(currentUser.getUsername(), currentUser.getFullName(), currentUser.getEmail(), currentUser.getPhone());
 
         model.addAttribute("userProfile", userProfile);
         return "user/profile";
@@ -46,11 +42,7 @@ public class UserController {
 
     // Cập nhật thông tin profile cá nhân
     @PostMapping
-    public String updateProfile(
-            @Valid @ModelAttribute("userProfile") UserProfile userProfile,
-            BindingResult bindingResult,
-            RedirectAttributes redirectAttributes,
-            Model model) {
+    public String updateProfile(@Valid @ModelAttribute("userProfile") UserProfile userProfile, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
 
         userProfile.setUsername("user1");
 
@@ -80,11 +72,7 @@ public class UserController {
 
     // Xử lý thay đổi mật khẩu
     @PostMapping("/change-password")
-    public String changePassword(
-            @Valid @ModelAttribute("changePassword") ChangePassword changePassword,
-            BindingResult bindingResult,
-            RedirectAttributes redirectAttributes,
-            Model model) {
+    public String changePassword(@Valid @ModelAttribute("changePassword") ChangePassword changePassword, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
 
         if (bindingResult.hasErrors()) {
             return "user/change-password";
@@ -107,5 +95,21 @@ public class UserController {
             model.addAttribute("errorMessage", "Đã xảy ra lỗi khi thay đổi mật khẩu.");
             return "user/change-password";
         }
+    }
+
+    @PostMapping("/request-host")
+    public String requestBecomeHost(HttpSession session, RedirectAttributes redirectAttributes) {
+
+        Long userId = (Long) session.getAttribute("userId");
+
+        if (userId == null) {
+            return "redirect:/login";
+        }
+
+        userService.requestBecomeHost(userId);
+
+        redirectAttributes.addFlashAttribute("successMessage", "Đã gửi yêu cầu đăng ký làm chủ nhà.");
+
+        return "redirect:/profile";
     }
 }

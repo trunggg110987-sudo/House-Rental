@@ -17,6 +17,7 @@ import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
 
 import jakarta.validation.Valid;
+
 import java.util.Optional;
 
 @Controller
@@ -58,12 +59,7 @@ public class HouseController {
 
     // Lưu nhà mới kèm upload ảnh
     @PostMapping("/create")
-    public String createHouse(
-            @Valid @ModelAttribute("house") House house,
-            BindingResult bindingResult,
-            @RequestParam("imageFile") MultipartFile imageFile,
-            RedirectAttributes redirectAttributes,
-            Model model) {
+    public String createHouse(@Valid @ModelAttribute("house") House house, BindingResult bindingResult, @RequestParam("imageFile") MultipartFile imageFile, RedirectAttributes redirectAttributes, Model model) {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("categories", categoryService.findAll());
@@ -90,10 +86,7 @@ public class HouseController {
 
     // Danh sách nhà của chủ nhà (My Houses)
     @GetMapping("/my-houses")
-    public String myHouses(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "6") int size,
-            Model model) {
+    public String myHouses(@RequestParam(name = "page", defaultValue = "0") int page, @RequestParam(name = "size", defaultValue = "6") int size, Model model) {
 
         Optional<User> defaultHost = userService.findByUsername("host1");
         if (defaultHost.isPresent()) {
