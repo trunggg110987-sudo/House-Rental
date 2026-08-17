@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "houses")
 @Getter
@@ -40,6 +43,14 @@ public class House {
     private String description;
 
     private String thumbnailUrl;
+
+    @OneToMany(mappedBy = "house", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<HouseImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "house", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<HouseStatusPeriod> statusPeriods = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -12,11 +12,34 @@ import vn.codegym.house_rental.repository.HouseRepository;
 
 import java.util.Optional;
 
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import vn.codegym.house_rental.model.HouseImage;
+import vn.codegym.house_rental.model.HouseStatusPeriod;
+import vn.codegym.house_rental.repository.HouseImageRepository;
+import vn.codegym.house_rental.repository.HouseRepository;
+import vn.codegym.house_rental.repository.HouseStatusPeriodRepository;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 @Service
+@Transactional
 public class HouseService {
 
     @Autowired
     private HouseRepository houseRepository;
+
+    @Autowired
+    private HouseImageRepository houseImageRepository;
+
+    @Autowired
+    private HouseStatusPeriodRepository houseStatusPeriodRepository;
+
+    @Autowired
+    private FileStorageService fileStorageService;
 
     public Page<House> searchHouses(String keyword, Long categoryId, Double minPrice, Double maxPrice, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
@@ -28,12 +51,78 @@ public class HouseService {
         return houseRepository.findByHost(host, pageable);
     }
 
+    public Page<House> findByHostAndStatus(User host, House.HouseStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        if (status == null) {
+            return houseRepository.findByHost(host, pageable);
+        }
+        return houseRepository.findByHostAndStatus(host, status, pageable);
+    }
+
     public Optional<House> findById(Long id) {
         return houseRepository.findById(id);
     }
 
     public House save(House house) {
         return houseRepository.save(house);
+    }
+
+    public void saveHouseImages(House house, List<MultipartFile> imageFiles) {
+        if (imageFiles == null || imageFiles.isEmpty()) {
+            return;
+        }
+
+        List<HouseImage> imagesToSave = new ArrayList<>();
+        for (MultipartFile file : imageFiles) {
+            if (file != null && !file.isEmpty()) {
+                String uploadedUrl = fileStorageService.storeFile(file);
+                if (uploadedUrl != null) {
+                    HouseImage image = HouseImage.builder()
+                            .imageUrl(uploadedUrl)
+                            .house(house)
+                            .build();
+                    imagesToSave.add(image);
+                }
+            }
+        }
+
+        if (!imagesToSave.isEmpty()) {
+            houseImageRepository.saveAll(imagesToSave);
+            // Cập nhật thumbnailUrl bằng ảnh đầu tiên nếu thumbnailUrl chưa được đặt hoặc dùng ảnh vừa upload
+            if (house.getThumbnailUrl() == null || house.getThumbnailUrl().trim().isEmpty() || house.getThumbnailUrl().contains("unsplash")) {
+                house.setThumbnailUrl(imagesToSave.get(0).getImageUrl());
+                houseRepository.save(house);
+            }
+        }
+    }
+
+    public HouseStatusPeriod addStatusPeriod(House house, House.HouseStatus status, LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("Ngày bắt đầu và ngày kết thúc không được để trống.");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Ngày kết thúc không được trước ngày bắt đầu.");
+        }
+
+        HouseStatusPeriod statusPeriod = HouseStatusPeriod.builder()
+                .house(house)
+                .status(status)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+
+        // Cập nhật trạng thái nhà nếu khoảng thời gian bao gồm ngày hiện tại
+        LocalDate today = LocalDate.now();
+        if (!today.isBefore(startDate) && !today.isAfter(endDate)) {
+            house.setStatus(status);
+            houseRepository.save(house);
+        }
+
+        return houseStatusPeriodRepository.save(statusPeriod);
+    }
+
+    public List<HouseStatusPeriod> getStatusPeriods(House house) {
+        return houseStatusPeriodRepository.findByHouse(house);
     }
 
     public void deleteById(Long id) {

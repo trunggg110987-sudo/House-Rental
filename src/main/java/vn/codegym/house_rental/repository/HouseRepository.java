@@ -15,6 +15,7 @@ import vn.codegym.house_rental.model.User;
 public interface HouseRepository extends JpaRepository<House, Long> {
 
     Page<House> findByHost(User host, Pageable pageable);
+    Page<House> findByHostAndStatus(User host, House.HouseStatus status, Pageable pageable);
     long countByHost(User host);
 
     List<House> findByHost(User host);

@@ -13,8 +13,30 @@
         <!-- Left Side: Large Thumbnail & Main Details -->
         <div class="col-lg-8">
             <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
-                <img th:src="${house.thumbnailUrl}" class="w-100" style="max-height: 480px; object-fit: cover;"
-                     alt="Thumbnail house detail">
+                <!-- Image Gallery Carousel if multiple images exist -->
+                <div th:if="${house.images != null and not #lists.isEmpty(house.images)}" id="houseImageCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img th:src="${house.thumbnailUrl}" class="d-block w-100" style="max-height: 480px; object-fit: cover;" alt="Thumbnail">
+                        </div>
+                        <div class="carousel-item" th:each="img : ${house.images}">
+                            <img th:src="${img.imageUrl}" class="d-block w-100" style="max-height: 480px; object-fit: cover;" alt="House Image">
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#houseImageCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#houseImageCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+                <!-- Single Thumbnail Fallback -->
+                <div th:if="${house.images == null or #lists.isEmpty(house.images)}">
+                    <img th:src="${house.thumbnailUrl}" class="w-100" style="max-height: 480px; object-fit: cover;" alt="Thumbnail house detail">
+                </div>
+
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h2 class="fw-bold text-dark mb-0" th:text="${house.name}">Tên nhà cho thuê</h2>
@@ -24,7 +46,6 @@
                     </div>
 
                     <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
-
                         <div class="text-muted fs-6">
                             <i class="fa-solid fa-location-dot text-danger me-1"></i>
                             <span th:text="${house.address}">Địa chỉ</span>
@@ -33,12 +54,15 @@
                         <a th:href="@{'https://www.google.com/maps/search/?api=1&query=' + ${house.address}}"
                            target="_blank"
                            class="btn btn-outline-primary btn-sm rounded-pill">
-
                             <i class="fa-solid fa-map-location-dot me-1"></i>
                             Xem chỉ dẫn
-
                         </a>
+                    </div>
 
+                    <!-- Album Ảnh Nhỏ (Thumbnails) -->
+                    <div th:if="${house.images != null and not #lists.isEmpty(house.images)}" class="d-flex gap-2 overflow-auto py-2 mb-3">
+                        <img th:src="${house.thumbnailUrl}" class="rounded border" style="width: 80px; height: 60px; object-fit: cover;" alt="thumb">
+                        <img th:each="img : ${house.images}" th:src="${img.imageUrl}" class="rounded border" style="width: 80px; height: 60px; object-fit: cover;" alt="thumb">
                     </div>
 
                     <hr class="my-4">

@@ -22,6 +22,10 @@ import java.util.Optional;
 
 import jakarta.servlet.http.HttpSession;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
+import java.util.List;
+
 @Controller
 @RequestMapping("/houses")
 public class HouseController {
@@ -48,6 +52,7 @@ public class HouseController {
         House house = houseOptional.get();
         model.addAttribute("house", house);
         model.addAttribute("booking", new Booking());
+        model.addAttribute("statusPeriods", houseService.getStatusPeriods(house));
         return "house/detail";
     }
 
@@ -59,16 +64,16 @@ public class HouseController {
         return "house/form";
     }
 
-    // Lưu nhà mới kèm upload ảnh
+    // Lưu nhà mới kèm upload nhiều ảnh
     @PostMapping("/create")
     public String createHouse(@Valid @ModelAttribute("house") House house,
                              BindingResult bindingResult,
                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                             @RequestParam(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
                              HttpSession session,
                              RedirectAttributes redirectAttributes,
                              Model model) {
 
-        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy Host đang đăng nhập từ Session
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
             return "redirect:/login";
@@ -95,12 +100,18 @@ public class HouseController {
         house.setStatus(House.HouseStatus.AVAILABLE);
         house.setHost(currentUser);
 
-        houseService.save(house);
+        House savedHouse = houseService.save(house);
+
+        // Lưu danh sách ảnh phụ (Task 28)
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            houseService.saveHouseImages(savedHouse, imageFiles);
+        }
+
         redirectAttributes.addFlashAttribute("successMessage", "Thêm nhà cho thuê mới thành công!");
         return "redirect:/houses/my-houses";
     }
 
-    // [CẢI TIẾN]: Bổ sung Form Chỉnh sửa nhà cho thuê dành cho Chủ nhà
+    // Form Chỉnh sửa nhà cho thuê dành cho Chủ nhà
     @GetMapping("/{id}/edit")
     public String showEditForm(@PathVariable("id") Long id, HttpSession session, Model model) {
         User currentUser = (User) session.getAttribute("currentUser");
@@ -120,12 +131,13 @@ public class HouseController {
         return "house/form";
     }
 
-    // [CẢI TIẾN]: Bổ sung Cập nhật thông tin nhà cho thuê
+    // Cập nhật thông tin nhà cho thuê kèm upload nhiều ảnh
     @PostMapping("/{id}/edit")
     public String updateHouse(@PathVariable("id") Long id,
                              @Valid @ModelAttribute("house") House house,
                              BindingResult bindingResult,
                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                             @RequestParam(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
                              HttpSession session,
                              RedirectAttributes redirectAttributes,
                              Model model) {
@@ -158,11 +170,47 @@ public class HouseController {
         }
 
         houseService.save(existingHouse);
+
+        // Lưu danh sách ảnh phụ mới tải lên (Task 28)
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            houseService.saveHouseImages(existingHouse, imageFiles);
+        }
+
         redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin nhà thành công!");
         return "redirect:/houses/my-houses";
     }
 
-    // [CẢI TIẾN]: Bổ sung endpoint Xóa nhà cho thuê
+    // Endpoint cập nhật trạng thái nhà theo giai đoạn thời gian (Task 29)
+    @PostMapping("/{id}/status-period")
+    public String updateStatusPeriod(@PathVariable("id") Long id,
+                                    @RequestParam("status") House.HouseStatus status,
+                                    @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                    @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                    HttpSession session,
+                                    RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Optional<House> houseOptional = houseService.findById(id);
+        if (houseOptional.isEmpty() || !houseOptional.get().getHost().getId().equals(currentUser.getId())) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy căn nhà hoặc bạn không có quyền.");
+            return "redirect:/houses/my-houses";
+        }
+
+        try {
+            houseService.addStatusPeriod(houseOptional.get(), status, startDate, endDate);
+            redirectAttributes.addFlashAttribute("successMessage", "Cập nhật trạng thái nhà theo giai đoạn thời gian thành công!");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/houses/my-houses";
+    }
+
+    // Endpoint Xóa nhà cho thuê
     @PostMapping("/{id}/delete")
     public String deleteHouse(@PathVariable("id") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
         User currentUser = (User) session.getAttribute("currentUser");
@@ -175,23 +223,24 @@ public class HouseController {
         return "redirect:/houses/my-houses";
     }
 
-    // Danh sách nhà của chủ nhà (My Houses)
+    // Danh sách nhà của chủ nhà (My Houses) kèm bộ lọc Trạng thái (Task 30)
     @GetMapping("/my-houses")
-    public String myHouses(@RequestParam(name = "page", defaultValue = "0") int page,
+    public String myHouses(@RequestParam(name = "status", required = false) House.HouseStatus status,
+                           @RequestParam(name = "page", defaultValue = "0") int page,
                            @RequestParam(name = "size", defaultValue = "6") int size,
                            HttpSession session,
                            Model model) {
 
-        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy danh sách nhà của Host đang đăng nhập
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
             return "redirect:/login";
         }
 
-        Page<House> housePage = houseService.findByHost(currentUser, page, size);
+        Page<House> housePage = houseService.findByHostAndStatus(currentUser, status, page, size);
         model.addAttribute("houses", housePage.getContent());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", housePage.getTotalPages());
+        model.addAttribute("selectedStatus", status);
         return "house/my_houses";
     }
 }

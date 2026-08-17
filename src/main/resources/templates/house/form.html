@@ -53,11 +53,17 @@
                 </div>
             </div>
 
-            <!-- Image Thumbnail File Upload -->
-            <div class="mb-3">
-                <label class="form-label fw-bold">Tải Ảnh Thumbnail <i class="fa-solid fa-image text-primary me-1"></i></label>
-                <input type="file" name="imageFile" class="form-control" accept="image/*"/>
-                <div class="form-text">Hỗ trợ định dạng JPG, PNG, WEBP. Nếu không chọn, hệ thống sẽ gán ảnh mặc định.
+            <!-- Image Thumbnail & Multiple File Upload -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Ảnh Đại Diện (Thumbnail) <i class="fa-solid fa-image text-primary me-1"></i></label>
+                    <input type="file" name="imageFile" class="form-control" accept="image/*"/>
+                    <div class="form-text">Ảnh đại diện chính của căn nhà.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Đăng Nhiều Ảnh Chi Tiết <i class="fa-solid fa-images text-success me-1"></i></label>
+                    <input type="file" name="imageFiles" class="form-control" accept="image/*" multiple/>
+                    <div class="form-text">Bạn có thể chọn nhiều ảnh cùng lúc để đăng lên album nhà.</div>
                 </div>
             </div>
 
