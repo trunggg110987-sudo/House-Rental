@@ -1,0 +1,197 @@
+package vn.codegym.house_rental.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.codegym.house_rental.model.Booking;
+import vn.codegym.house_rental.model.House;
+import vn.codegym.house_rental.model.User;
+import vn.codegym.house_rental.service.CategoryService;
+import vn.codegym.house_rental.service.FileStorageService;
+import vn.codegym.house_rental.service.HouseService;
+import vn.codegym.house_rental.service.UserService;
+
+import jakarta.validation.Valid;
+
+import java.util.Optional;
+
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping("/houses")
+public class HouseController {
+
+    @Autowired
+    private HouseService houseService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private UserService userService;
+
+    // Xem chi tiết nhà cho thuê
+    @GetMapping("/{id}")
+    public String detail(@PathVariable("id") Long id, Model model) {
+        Optional<House> houseOptional = houseService.findById(id);
+        if (houseOptional.isEmpty()) {
+            return "redirect:/";
+        }
+        House house = houseOptional.get();
+        model.addAttribute("house", house);
+        model.addAttribute("booking", new Booking());
+        return "house/detail";
+    }
+
+    // Form thêm nhà mới
+    @GetMapping("/create")
+    public String showCreateForm(Model model) {
+        model.addAttribute("house", new House());
+        model.addAttribute("categories", categoryService.findAll());
+        return "house/form";
+    }
+
+    // Lưu nhà mới kèm upload ảnh
+    @PostMapping("/create")
+    public String createHouse(@Valid @ModelAttribute("house") House house,
+                             BindingResult bindingResult,
+                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                             HttpSession session,
+                             RedirectAttributes redirectAttributes,
+                             Model model) {
+
+        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy Host đang đăng nhập từ Session
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("categories", categoryService.findAll());
+            return "house/form";
+        }
+
+        try {
+            if (imageFile != null && !imageFile.isEmpty()) {
+                String uploadedUrl = fileStorageService.storeFile(imageFile);
+                house.setThumbnailUrl(uploadedUrl);
+            } else if (house.getThumbnailUrl() == null || house.getThumbnailUrl().trim().isEmpty()) {
+                house.setThumbnailUrl("https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600");
+            }
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("categories", categoryService.findAll());
+            return "house/form";
+        }
+
+        house.setStatus(House.HouseStatus.AVAILABLE);
+        house.setHost(currentUser);
+
+        houseService.save(house);
+        redirectAttributes.addFlashAttribute("successMessage", "Thêm nhà cho thuê mới thành công!");
+        return "redirect:/houses/my-houses";
+    }
+
+    // [CẢI TIẾN]: Bổ sung Form Chỉnh sửa nhà cho thuê dành cho Chủ nhà
+    @GetMapping("/{id}/edit")
+    public String showEditForm(@PathVariable("id") Long id, HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        Optional<House> houseOptional = houseService.findById(id);
+
+        if (houseOptional.isEmpty()) {
+            return "redirect:/houses/my-houses";
+        }
+
+        House house = houseOptional.get();
+        if (!house.getHost().getId().equals(currentUser.getId())) {
+            return "redirect:/houses/my-houses";
+        }
+
+        model.addAttribute("house", house);
+        model.addAttribute("categories", categoryService.findAll());
+        return "house/form";
+    }
+
+    // [CẢI TIẾN]: Bổ sung Cập nhật thông tin nhà cho thuê
+    @PostMapping("/{id}/edit")
+    public String updateHouse(@PathVariable("id") Long id,
+                             @Valid @ModelAttribute("house") House house,
+                             BindingResult bindingResult,
+                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                             HttpSession session,
+                             RedirectAttributes redirectAttributes,
+                             Model model) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        Optional<House> existingHouseOpt = houseService.findById(id);
+
+        if (existingHouseOpt.isEmpty() || !existingHouseOpt.get().getHost().getId().equals(currentUser.getId())) {
+            return "redirect:/houses/my-houses";
+        }
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("categories", categoryService.findAll());
+            return "house/form";
+        }
+
+        House existingHouse = existingHouseOpt.get();
+        existingHouse.setName(house.getName());
+        existingHouse.setAddress(house.getAddress());
+        existingHouse.setPricePerMonth(house.getPricePerMonth());
+        existingHouse.setNumberOfBedrooms(house.getNumberOfBedrooms());
+        existingHouse.setNumberOfBathrooms(house.getNumberOfBathrooms());
+        existingHouse.setDescription(house.getDescription());
+        existingHouse.setCategory(house.getCategory());
+        existingHouse.setStatus(house.getStatus());
+
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String uploadedUrl = fileStorageService.storeFile(imageFile);
+            existingHouse.setThumbnailUrl(uploadedUrl);
+        }
+
+        houseService.save(existingHouse);
+        redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin nhà thành công!");
+        return "redirect:/houses/my-houses";
+    }
+
+    // [CẢI TIẾN]: Bổ sung endpoint Xóa nhà cho thuê
+    @PostMapping("/{id}/delete")
+    public String deleteHouse(@PathVariable("id") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        Optional<House> houseOptional = houseService.findById(id);
+
+        if (houseOptional.isPresent() && houseOptional.get().getHost().getId().equals(currentUser.getId())) {
+            houseService.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa nhà cho thuê thành công.");
+        }
+        return "redirect:/houses/my-houses";
+    }
+
+    // Danh sách nhà của chủ nhà (My Houses)
+    @GetMapping("/my-houses")
+    public String myHouses(@RequestParam(name = "page", defaultValue = "0") int page,
+                           @RequestParam(name = "size", defaultValue = "6") int size,
+                           HttpSession session,
+                           Model model) {
+
+        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy danh sách nhà của Host đang đăng nhập
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Page<House> housePage = houseService.findByHost(currentUser, page, size);
+        model.addAttribute("houses", housePage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", housePage.getTotalPages());
+        return "house/my_houses";
+    }
+}
