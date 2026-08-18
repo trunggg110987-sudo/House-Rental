@@ -46,6 +46,27 @@ public class HouseService {
         return houseRepository.searchHouses((keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null, categoryId, minPrice, maxPrice, pageable);
     }
 
+    public Page<House> searchAvailableHouses(String keyword, Long categoryId, Double minPrice, Double maxPrice, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return houseRepository.searchAvailableHouses((keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null, categoryId, minPrice, maxPrice, pageable);
+    }
+
+    public List<House> getTop5MostRentedHouses() {
+        Pageable pageable = PageRequest.of(0, 5);
+        List<House> topRented = new ArrayList<>(houseRepository.findTopRentedHouses(pageable));
+
+        // Nếu số lượng nhà có đơn được duyệt chưa đủ 5, bổ sung các nhà sẵn có để trang chủ hiển thị đủ 5 căn
+        if (topRented.size() < 5) {
+            List<House> availableHouses = houseRepository.findAll(PageRequest.of(0, 5, Sort.by("id").descending())).getContent();
+            for (House house : availableHouses) {
+                if (!topRented.contains(house) && topRented.size() < 5) {
+                    topRented.add(house);
+                }
+            }
+        }
+        return topRented;
+    }
+
     public Page<House> findByHost(User host, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return houseRepository.findByHost(host, pageable);

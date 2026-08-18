@@ -58,7 +58,11 @@ public class HouseController {
 
     // Form thêm nhà mới
     @GetMapping("/create")
-    public String showCreateForm(Model model) {
+    public String showCreateForm(HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("house", new House());
         model.addAttribute("categories", categoryService.findAll());
         return "house/form";
