@@ -1,0 +1,147 @@
+<html xmlns:o='urn:schemas-microsoft-microsoft-com:office:office'
+      xmlns:w='urn:schemas-microsoft-microsoft-com:office:word'
+      xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset='utf-8'>
+<title>BÁO CÁO TỔNG HỢP CẢI TIẾN TÍNH NĂNG HỆ THỐNG HOUSE RENTAL</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+body { font-family: 'Segoe UI', 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; color: #2B2D42; margin: 30pt; }
+h1 { font-size: 20pt; color: #0D6EFD; border-bottom: 2pt solid #0D6EFD; padding-bottom: 6pt; margin-bottom: 15pt; }
+h2 { font-size: 14pt; color: #004085; margin-top: 18pt; border-left: 4pt solid #0D6EFD; padding-left: 8pt; }
+table { border-collapse: collapse; width: 100%; margin-top: 10pt; margin-bottom: 15pt; }
+th, td { border: 1pt solid #CCCCCC; padding: 7pt 10pt; text-align: left; vertical-align: top; }
+th { background-color: #F1F5F9; color: #0F172A; font-weight: bold; }
+.summary-box { background-color: #EBF8FF; border: 1pt solid #BEE3F8; border-radius: 6pt; padding: 12pt; margin-bottom: 15pt; }
+</style>
+</head>
+<body>
+
+<h1>BÁO CÁO CẢI TIẾN HỆ THỐNG HOUSE RENTAL</h1>
+
+<div class="summary-box">
+    <p><strong>Tên Dự Án:</strong> House Rental System (Merged Version)</p>
+    <p><strong>Ngày Lập Báo Cáo:</strong> 10/08/2026</p>
+    <p><strong>Nội Dung:</strong> Tổng hợp danh mục các hạng mục cải tiến và kết quả thực hiện chi tiết cho 11 Task (Không trùng lặp).</p>
+</div>
+
+<h2>DANH MỤC CÁC HẠNG MỤC CẢI TIẾN ĐÃ THỰC HIỆN</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 15%;">Hạng Mục / Task</th>
+            <th style="width: 35%;">Yêu Cầu & Hiện Trạng Trước Khi Sửa</th>
+            <th style="width: 50%;">Chi Tiết Thay Đổi & Kết Quả Đã Sửa</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Cấu hình Build & Properties</strong></td>
+            <td>Gradle dùng Spring Boot 4.1.0 (không tồn tại), dependency test bị sai tên gây lỗi build. Cấu hình Mail thiếu giá trị fallback.</td>
+            <td>
+                - Hạ Spring Boot về bản <strong>3.3.5</strong> ổn định trong <code>build.gradle</code>.<br>
+                - Sửa dependency thành <code>spring-boot-starter-web</code> và <code>spring-boot-starter-test</code>.<br>
+                - Thêm giá trị fallback mặc định cho <code>spring.mail.username</code> trong <code>application.properties</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Bảo mật & Phân quyền</strong></td>
+            <td>Chưa có Bộ lọc phân quyền đường dẫn (Khách vô danh có thể gõ URL truy cập các trang Admin/Host). Thiếu nút Đăng xuất.</td>
+            <td>
+                - Tạo mới <code>AuthInterceptor</code> và đăng ký trong <code>WebConfig</code> để bảo vệ các route <code>/admin/**</code>, <code>/houses/create</code>, <code>/bookings/**</code>.<br>
+                - Thêm route <code>/logout</code> xóa toàn bộ HttpSession và chuyển về trang đăng nhập <code>/login</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Upload File & Đặt Phòng</strong></td>
+            <td>Chưa kiểm tra file upload an toàn. Đặt phòng không kiểm tra trùng lịch đã duyệt và chưa cho phép Người thuê hủy đơn PENDING.</td>
+            <td>
+                - Thêm kiểm tra file upload tối đa <strong>5MB</strong> và đuôi ảnh <code>.jpg, .jpeg, .png, .webp</code> trong <code>FileStorageService</code>.<br>
+                - Bổ sung Query <code>existsOverlappingBooking</code> trong <code>BookingRepository</code> và hàm <code>cancelBooking</code> trong <code>BookingService</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Loại bỏ Hardcode Controller</strong></td>
+            <td><code>BookingController</code> và <code>HouseController</code> cố định tài khoản <code>user1</code> và <code>host1</code>. Thiếu tính năng Sửa/Xóa nhà.</td>
+            <td>
+                - Tự động lấy <code>currentUser</code> từ <code>HttpSession</code> thay thế mã hardcode.<br>
+                - Bổ sung các endpoint Chỉnh sửa (<code>/houses/{id}/edit</code>) và Xóa (<code>/houses/{id}/delete</code>) nhà cho Chủ nhà.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 1: Đăng ký Khách thuê</strong></td>
+            <td>Lỗi trùng dữ liệu làm reset sạch form. Đăng ký thành công redirect về trang chủ <code>/</code> thay vì <code>/login</code>.</td>
+            <td>
+                - Giữ nguyên dữ liệu trên form khi báo lỗi trùng trong <code>RegisterValidator</code>.<br>
+                - Đăng ký thành công chuyển sang <code>redirect:/login</code> và tự động điền sẵn Username vừa tạo.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 2: Validate Ký tự đặc biệt</strong></td>
+            <td>Chưa chặn ký tự đặc biệt (*, %, ., ') trên Form Đăng ký/Profile. Đăng nhập sai chưa có thông báo đỏ.</td>
+            <td>
+                - Thêm annotation <code>@Pattern</code> Regex chặn ký tự đặc biệt cho Username, Họ tên, SĐT trên DTO.<br>
+                - Hiển thị khung thông báo cảnh báo lỗi màu đỏ khi sai mật khẩu trên <code>login.html</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 3: Thông tin Profile</strong></td>
+            <td>Thiếu trường Avatar và Địa chỉ. Chưa có ảnh đại diện mặc định.</td>
+            <td>
+                - Bổ sung <code>avatarUrl</code> và <code>address</code> vào <code>User</code>, <code>UserProfile</code> DTO và <code>UserService</code>.<br>
+                - Đặt ảnh Avatar mặc định và hiển thị khung chọn/tải Avatar + ô nhập Địa chỉ trên <code>profile.html</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 4: Đổi mật khẩu</strong></td>
+            <td>Mật khẩu mới vẫn cho phép trùng với Mật khẩu cũ.</td>
+            <td>
+                - Thêm kiểm tra <code>if (newPassword.equals(currentPassword))</code> ném ngoại lệ báo lỗi trong <code>UserService.changePassword</code> và hiển thị tại form.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 6: Google Login</strong></td>
+            <td>Chưa có nút Đăng nhập bằng Google trên form Login.</td>
+            <td>
+                - Thêm nút bấm <strong>"Đăng nhập bằng Google"</strong> có logo Google tại form <code>login.html</code> kết nối route OAuth2.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 7 & 8: Đăng ký Làm Chủ Nhà</strong></td>
+            <td>Chưa có luồng Đăng ký Chủ nhà riêng. Thiếu validate Mật khẩu 6-32 ký tự.</td>
+            <td>
+                - Cập nhật <code>register.html</code> thành <strong>2 Tab: Khách Thuê & Làm Chủ Nhà</strong>.<br>
+                - Tab Chủ nhà tự động gán role <code>ROLE_HOST</code> và trạng thái <code>PENDING</code>.<br>
+                - Bổ sung validate Mật khẩu từ 6 đến 32 ký tự (<code>@Size(min=6, max=32)</code>), đăng ký thành công chuyển về <code>/login</code>.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Task 9 & 10: Nhãn Tài Khoản Chủ Nhà</strong></td>
+            <td>Giao diện Profile và Đổi mật khẩu chưa có mục hiển thị rõ tư cách Chủ nhà.</td>
+            <td>
+                - Bổ sung Huy hiệu/Mục nhãn nổi bật: <code>TÀI KHOẢN CHỦ NHÀ</code> hiển thị trên <code>profile.html</code> và <code>change-password.html</code> khi tài khoản thuộc vai trò Chủ nhà.
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>QUY TẮC CHÚ THÍCH TRONG MÃ NGUỒN</h2>
+<ul>
+    <li><strong>Bảo lưu comment cũ</strong>: Giữ nguyên toàn bộ chú thích có sẵn trong hệ thống.</li>
+    <li><strong>Comment mới ngắn gọn</strong>: Mỗi thay đổi mới đều có chú thích <code>// [BỔ SUNG THEO YÊU CẦU TASK X]</code> hoặc <code>&lt;!-- [BỔ SUNG THEO YÊU CẦU TASK X] --&gt;</code> đặt ngay trước vị trí sửa đổi.</li>
+</ul>
+
+<hr>
+<p style="text-align: center; color: #6C757D; font-size: 9pt;">Báo cáo tổng hợp không trùng lặp - Dự án House Rental Merged.</p>
+
+</body>
+</html>
