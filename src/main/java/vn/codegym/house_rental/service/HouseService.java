@@ -33,6 +33,10 @@ public class HouseService {
         return houseRepository.findByHost(host, pageable);
     }
 
+    public Page<House> findTopByBookingCount(int size) {
+        return houseRepository.findTopByBookingCount(PageRequest.of(0, size));
+    }
+
     public Optional<House> findById(Long id) {
         return houseRepository.findById(id);
     }

@@ -26,10 +26,13 @@
                 <div class="card-body">
                     <h5 class="fw-bold text-truncate" th:text="${h.name}"></h5>
                     <p class="text-muted small text-truncate"><i class="fa-solid fa-location-dot me-1"></i> <span th:text="${h.address}"></span></p>
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="price-text" th:text="${#numbers.formatDecimal(h.pricePerMonth, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></span>
                         <span class="badge" th:classappend="'badge-status-' + ${h.status}" th:text="${h.status}"></span>
                     </div>
+                    <a th:href="@{'/houses/' + ${h.id} + '/edit'}" class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-semibold">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Sửa Thông Tin
+                    </a>
                 </div>
             </div>
         </div>

@@ -32,6 +32,7 @@ public class HomeController {
         Page<House> housePage = houseService.searchHouses(keyword, categoryId, minPrice, maxPrice, page, size);
 
         model.addAttribute("houses", housePage.getContent());
+        model.addAttribute("topHouses", houseService.findTopByBookingCount(5).getContent());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", housePage.getTotalPages());
         model.addAttribute("totalItems", housePage.getTotalElements());

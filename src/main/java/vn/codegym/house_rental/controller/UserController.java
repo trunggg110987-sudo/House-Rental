@@ -1,5 +1,6 @@
 package vn.codegym.house_rental.controller;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -24,10 +25,22 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // Lấy user đang đăng nhập từ session
+    private User getCurrentUser(HttpSession session) {
+        return (User) session.getAttribute(LoginController.SESSION_USER_KEY);
+    }
+
     // Xem thông tin profile cá nhân
     @GetMapping
-    public String showProfile(Model model) {
-        Optional<User> userOptional = userService.findByUsername("user1");
+    public String showProfile(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        User sessionUser = getCurrentUser(session);
+        if (sessionUser == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng đăng nhập để xem trang cá nhân");
+            return "redirect:/login";
+        }
+
+        // Lấy lại dữ liệu mới nhất từ DB (tránh dữ liệu cũ trong session)
+        Optional<User> userOptional = userService.findByUsername(sessionUser.getUsername());
         if (userOptional.isEmpty()) {
             return "redirect:/";
         }
@@ -49,17 +62,29 @@ public class UserController {
     public String updateProfile(
             @Valid @ModelAttribute("userProfile") UserProfile userProfile,
             BindingResult bindingResult,
+            HttpSession session,
             RedirectAttributes redirectAttributes,
             Model model) {
 
-        userProfile.setUsername("user1");
+        User sessionUser = getCurrentUser(session);
+        if (sessionUser == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng đăng nhập để tiếp tục");
+            return "redirect:/login";
+        }
+
+        String username = sessionUser.getUsername();
+        userProfile.setUsername(username);
 
         if (bindingResult.hasErrors()) {
             return "user/profile";
         }
 
         try {
-            userService.updateProfile("user1", userProfile);
+            User updatedUser = userService.updateProfile(username, userProfile);
+
+            // Cập nhật lại session để header/các trang khác hiển thị đúng ngay lập tức
+            session.setAttribute(LoginController.SESSION_USER_KEY, updatedUser);
+
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin cá nhân thành công!");
             return "redirect:/profile";
         } catch (IllegalArgumentException e) {
@@ -73,7 +98,11 @@ public class UserController {
 
     // Hiển thị form thay đổi mật khẩu
     @GetMapping("/change-password")
-    public String showChangePasswordForm(Model model) {
+    public String showChangePasswordForm(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        if (getCurrentUser(session) == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng đăng nhập để tiếp tục");
+            return "redirect:/login";
+        }
         model.addAttribute("changePassword", new ChangePassword());
         return "user/change-password";
     }
@@ -83,15 +112,24 @@ public class UserController {
     public String changePassword(
             @Valid @ModelAttribute("changePassword") ChangePassword changePassword,
             BindingResult bindingResult,
+            HttpSession session,
             RedirectAttributes redirectAttributes,
             Model model) {
+
+        User sessionUser = getCurrentUser(session);
+        if (sessionUser == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Vui lòng đăng nhập để tiếp tục");
+            return "redirect:/login";
+        }
 
         if (bindingResult.hasErrors()) {
             return "user/change-password";
         }
 
+        String username = sessionUser.getUsername();
+
         try {
-            userService.changePassword("user1", changePassword);
+            userService.changePassword(username, changePassword);
             redirectAttributes.addFlashAttribute("successMessage", "Thay đổi mật khẩu thành công!");
             return "redirect:/profile/change-password";
         } catch (IllegalArgumentException e) {

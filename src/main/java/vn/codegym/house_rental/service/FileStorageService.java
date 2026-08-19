@@ -3,16 +3,19 @@ package vn.codegym.house_rental.service;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.File;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class FileStorageService {
+
+    private static final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png");
 
     private final Path fileStorageLocation;
 
@@ -29,6 +32,13 @@ public class FileStorageService {
         if (file == null || file.isEmpty()) {
             return null;
         }
+
+        // Validate định dạng file: chỉ chấp nhận JPEG, PNG
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Chỉ chấp nhận file ảnh định dạng JPEG hoặc PNG");
+        }
+
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg");
         String fileExtension = "";
         int i = originalFilename.lastIndexOf('.');

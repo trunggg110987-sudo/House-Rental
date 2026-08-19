@@ -15,6 +15,7 @@ public interface HouseRepository extends JpaRepository<House, Long> {
     Page<House> findByHost(User host, Pageable pageable);
 
     @Query("SELECT h FROM House h WHERE " +
+            "h.status = vn.codegym.house_rental.model.House$HouseStatus.AVAILABLE AND " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
            "(:minPrice IS NULL OR h.pricePerMonth >= :minPrice) AND " +
@@ -26,4 +27,8 @@ public interface HouseRepository extends JpaRepository<House, Long> {
             @Param("maxPrice") Double maxPrice,
             Pageable pageable
     );
+
+    @Query("SELECT h FROM House h LEFT JOIN Booking b ON b.house = h " +
+           "GROUP BY h ORDER BY COUNT(b.id) DESC, h.id DESC")
+    Page<House> findTopByBookingCount(Pageable pageable);
 }
