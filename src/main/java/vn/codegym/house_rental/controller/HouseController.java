@@ -58,7 +58,11 @@ public class HouseController {
 
     // Form thêm nhà mới
     @GetMapping("/create")
-    public String showCreateForm(Model model) {
+    public String showCreateForm(HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("house", new House());
         model.addAttribute("categories", categoryService.findAll());
         return "house/form";
@@ -91,20 +95,24 @@ public class HouseController {
             } else if (house.getThumbnailUrl() == null || house.getThumbnailUrl().trim().isEmpty()) {
                 house.setThumbnailUrl("https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600");
             }
+
+            if (house.getPricePerDay() == null && house.getPricePerMonth() != null) {
+                house.setPricePerDay(Math.round((house.getPricePerMonth() / 30.0) * 100.0) / 100.0);
+            }
+
+            house.setStatus(House.HouseStatus.AVAILABLE);
+            house.setHost(currentUser);
+
+            House savedHouse = houseService.save(house);
+
+            // Lưu danh sách ảnh phụ với try-catch
+            if (imageFiles != null && !imageFiles.isEmpty()) {
+                houseService.saveHouseImages(savedHouse, imageFiles);
+            }
         } catch (IllegalArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("categories", categoryService.findAll());
             return "house/form";
-        }
-
-        house.setStatus(House.HouseStatus.AVAILABLE);
-        house.setHost(currentUser);
-
-        House savedHouse = houseService.save(house);
-
-        // Lưu danh sách ảnh phụ (Task 28)
-        if (imageFiles != null && !imageFiles.isEmpty()) {
-            houseService.saveHouseImages(savedHouse, imageFiles);
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Thêm nhà cho thuê mới thành công!");
@@ -157,23 +165,34 @@ public class HouseController {
         House existingHouse = existingHouseOpt.get();
         existingHouse.setName(house.getName());
         existingHouse.setAddress(house.getAddress());
-        existingHouse.setPricePerMonth(house.getPricePerMonth());
+        existingHouse.setPricePerDay(house.getPricePerDay());
+        if (house.getPricePerMonth() != null) {
+            existingHouse.setPricePerMonth(house.getPricePerMonth());
+        } else if (house.getPricePerDay() != null) {
+            existingHouse.setPricePerMonth(house.getPricePerDay() * 30.0);
+        }
         existingHouse.setNumberOfBedrooms(house.getNumberOfBedrooms());
         existingHouse.setNumberOfBathrooms(house.getNumberOfBathrooms());
         existingHouse.setDescription(house.getDescription());
         existingHouse.setCategory(house.getCategory());
         existingHouse.setStatus(house.getStatus());
 
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String uploadedUrl = fileStorageService.storeFile(imageFile);
-            existingHouse.setThumbnailUrl(uploadedUrl);
-        }
+        try {
+            if (imageFile != null && !imageFile.isEmpty()) {
+                String uploadedUrl = fileStorageService.storeFile(imageFile);
+                existingHouse.setThumbnailUrl(uploadedUrl);
+            }
 
-        houseService.save(existingHouse);
+            houseService.save(existingHouse);
 
-        // Lưu danh sách ảnh phụ mới tải lên (Task 28)
-        if (imageFiles != null && !imageFiles.isEmpty()) {
-            houseService.saveHouseImages(existingHouse, imageFiles);
+            // Lưu danh sách ảnh phụ mới tải lên với try-catch
+            if (imageFiles != null && !imageFiles.isEmpty()) {
+                houseService.saveHouseImages(existingHouse, imageFiles);
+            }
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("categories", categoryService.findAll());
+            return "house/form";
         }
 
         redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin nhà thành công!");

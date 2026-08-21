@@ -29,7 +29,11 @@ public class HomeController {
             @RequestParam(name = "size", defaultValue = "6") int size,
             Model model) {
 
-        Page<House> housePage = houseService.searchHouses(keyword, categoryId, minPrice, maxPrice, page, size);
+        // 22 & 24: Tìm kiếm và hiển thị danh sách các nhà đang có sẵn cho thuê (AVAILABLE)
+        Page<House> housePage = houseService.searchAvailableHouses(keyword, categoryId, minPrice, maxPrice, page, size);
+
+        //  23: Lấy danh sách Top 5 căn nhà có lượt thuê nhiều nhất
+        model.addAttribute("topRentedHouses", houseService.getTop5MostRentedHouses());
 
         model.addAttribute("houses", housePage.getContent());
         model.addAttribute("currentPage", page);

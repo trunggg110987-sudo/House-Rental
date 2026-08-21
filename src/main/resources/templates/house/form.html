@@ -6,10 +6,11 @@
 <div class="main-content container py-4" style="max-width: 800px;">
     <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
         <h3 class="fw-bold mb-4 text-primary">
-            <i class="fa-solid fa-plus-circle me-2"></i> Đăng Tin Cho Thuê Nhà Mới
+            <i class="fa-solid me-2" th:classappend="${house.id == null ? 'fa-plus-circle' : 'fa-pen-to-square'}"></i>
+            <span th:text="${house.id == null ? 'Đăng Tin Cho Thuê Nhà Mới' : 'Chỉnh Sửa Thông Tin Nhà'}">Đăng Tin Cho Thuê Nhà Mới</span>
         </h3>
 
-        <form th:action="@{/houses/create}" method="post" enctype="multipart/form-data" th:object="${house}">
+        <form th:action="${house.id == null ? '/houses/create' : '/houses/' + house.id + '/edit'}" method="post" enctype="multipart/form-data" th:object="${house}">
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Tên Nhà / Căn Hộ <span class="text-danger">*</span></label>
@@ -27,10 +28,10 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">Giá Cho Thuê (VNĐ / Tháng) <span
+                    <label class="form-label fw-bold">Giá Cho Thuê (VNĐ / Ngày) <span
                             class="text-danger">*</span></label>
-                    <input type="number" step="100000" th:field="*{pricePerMonth}" class="form-control"
-                           placeholder="VD: 12000000" required/>
+                    <input type="number" step="50000" th:field="*{pricePerDay}" class="form-control"
+                           placeholder="VD: 850000" required/>
                 </div>
             </div>
 
@@ -68,8 +69,8 @@
             </div>
 
             <div class="mb-4">
-                <label class="form-label fw-bold">Mô Tả Tiện Ích & Thông Tin</label>
-                <textarea th:field="*{description}" class="form-control" rows="5"
+                <label class="form-label fw-bold">Mô Tả Tiện Ích & Thông Tin (WYSIWYG)</label>
+                <textarea th:field="*{description}" class="form-control wysiwyg-editor" rows="6"
                           placeholder="Mô tả thông tin chi tiết về nội thất, diện tích, quy định cho thuê..."></textarea>
             </div>
 

@@ -18,10 +18,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @EntityGraph(attributePaths = {"house", "renter"})
     Page<Booking> findByRenter(User renter, Pageable pageable);
 
+    List<Booking> findByRenter(User renter);
+
     @EntityGraph(attributePaths = {"house", "renter"})
     Page<Booking> findByHouse_Host(User host, Pageable pageable);
 
-    List<Booking> findByRenter(User renter);
+    long countByHouse_Host(User host);
+
+    long countByRenter(User renter);
 
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b

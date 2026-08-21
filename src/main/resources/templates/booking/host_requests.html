@@ -33,7 +33,7 @@
                 <tr th:each="b : ${bookings}">
                     <td class="ps-4">
                         <div class="d-flex align-items-center gap-3">
-                            <img th:src="${b.house != null && b.house.thumbnailUrl != null && !#strings.isEmpty(b.house.thumbnailUrl) ? b.house.thumbnailUrl : '/images/default-house.jpg'}" class="rounded-3"
+                            <img th:src="${b.house != null && b.house.thumbnailUrl != null && !#strings.isEmpty(b.house.thumbnailUrl) ? b.house.thumbnailUrl : 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600'}" class="rounded-3"
                                  style="width: 70px; height: 50px; object-fit: cover;">
                             <div>
                                 <div class="fw-bold text-dark" th:text="${b.house.name}"></div>
@@ -47,15 +47,15 @@
                                 th:text="${b.renter != null ? b.renter.phone : ''}"></span></div>
                     </td>
                     <td class="small">
-                        <div>Từ: <strong th:text="${b.startDate}"></strong></div>
-                        <div>Đến: <strong th:text="${b.endDate}"></strong></div>
+                        <div>Từ: <strong th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}">01/01/2026</strong></div>
+                        <div>Đến: <strong th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}">05/01/2026</strong></div>
                     </td>
                     <td class="fw-bold text-primary"
                         th:text="${#numbers.formatDecimal(b.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
                     <td>
                             <span class="badge px-3 py-2 rounded-pill"
                                   th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger')}"
-                                  th:text="${b.status}">
+                                  th:text="${b.getStatusVietnamese()}">
                             </span>
                     </td>
                     <td class="text-center">

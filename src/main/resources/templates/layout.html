@@ -8,9 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Trumbowyg WYSIWYG Editor CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.0/ui/trumbowyg.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -66,87 +67,83 @@
             padding: 24px 0;
             margin-top: 60px;
         }
+        .trumbowyg-box {
+            border-radius: 12px !important;
+            border-color: #dee2e6 !important;
+        }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-<!-- Header Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+<!-- Header Navbar - Streamlined to prevent text wrapping -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top py-2">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/}">
-            <i class="fa-solid fa-house-chimney text-primary"></i> HouseRental
+            <i class="fa-solid fa-house-chimney text-primary fs-3"></i> 
+            <span class="fw-bold">HouseRental</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- [CẢI TIẾN]: Sửa lại cấu trúc HTML bị lỗi lồng thẻ li trong thẻ a, ẩn/hiện menu theo Role người dùng đăng nhập -->
-            <ul class="navbar-nav me-auto">
+            <ul class="navbar-nav me-auto align-items-lg-center gap-1">
                 <li class="nav-item">
-                    <a class="nav-link fw-semibold" th:href="@{/}">
-                        <i class="fa-solid fa-compass me-1"></i> Khám Phá Nhà
+                    <a class="nav-link fw-semibold px-3" th:href="@{/}">
+                        <i class="fa-solid fa-compass text-primary me-1"></i> Khám Phá Nhà
                     </a>
                 </li>
-                <!-- Menu hiển thị khi người dùng đã đăng nhập -->
+                
+                <!-- Menu Khách thuê -->
                 <li class="nav-item" th:if="${session.currentUser != null and session.currentUser.role.name() != 'ROLE_ADMIN'}">
-                    <a class="nav-link" th:href="@{/bookings/my-bookings}">
-                        <i class="fa-solid fa-calendar-check"></i>
-                        Đơn Thuê Của Tôi
+                    <a class="nav-link fw-semibold px-3" th:href="@{/bookings/my-bookings}">
+                        <i class="fa-solid fa-calendar-check text-success me-1"></i> Đơn Thuê Của Tôi
                     </a>
                 </li>
 
-                <!-- Menu dành riêng cho Chủ Nhà (HOST) -->
-                <li class="nav-item" th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_HOST'}">
-                    <a class="nav-link" th:href="@{/houses/my-houses}">
-                        <i class="fa-solid fa-house"></i>
-                        Quản Lý Nhà Của Tôi
+                <!-- Dropdown dành riêng cho Chủ Nhà (HOST) -->
+                <li class="nav-item dropdown" th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_HOST'}">
+                    <a class="nav-link dropdown-toggle fw-semibold px-3" href="#" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-house-user text-warning me-1"></i> Quản Lý Chủ Nhà
                     </a>
+                    <ul class="dropdown-menu border-0 shadow-sm rounded-3">
+                        <li><a class="dropdown-item" th:href="@{/houses/my-houses}"><i class="fa-solid fa-list-check me-2"></i>Danh Sách Nhà Của Tôi</a></li>
+                        <li><a class="dropdown-item" th:href="@{/bookings/host-requests}"><i class="fa-solid fa-user-check me-2"></i>Duyệt Đặt Phòng</a></li>
+                        <li><a class="dropdown-item text-primary" th:href="@{/houses/create}"><i class="fa-solid fa-plus-circle me-2"></i>Đăng Tin Cho Thuê</a></li>
+                    </ul>
                 </li>
 
-                <!-- Duyệt đặt nhà: chỉ HOST -->
-                <li class="nav-item"
-                    th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_HOST'}">
-                    <a class="nav-link" th:href="@{/bookings/host-requests}">
-                        <i class="fa-solid fa-user-check"></i>
-                        Duyệt Đặt Nhà
+                <!-- Dropdown Admin Dashboard -->
+                <li class="nav-item dropdown" th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_ADMIN'}">
+                    <a class="nav-link dropdown-toggle fw-bold text-danger px-3" href="#" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-user-shield me-1"></i> Quản Trị Hệ Thống
                     </a>
-                </li>
-
-                <!-- [SỬA LỖI]: Bổ sung đường dẫn "Quản Lý Chủ Nhà" (Duyệt làm chủ nhà) trong thanh Navigation của Admin -->
-                <li class="nav-item" th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_ADMIN'}">
-                    <a class="nav-link fw-semibold text-danger" th:href="@{/admin/users}">
-                        <i class="fa-solid fa-users me-1"></i> Quản Lý Người Dùng
-                    </a>
-                </li>
-                <li class="nav-item" th:if="${session.currentUser != null and session.currentUser.role.name() == 'ROLE_ADMIN'}">
-                    <a class="nav-link fw-semibold text-danger" th:href="@{/admin/hosts}">
-                        <i class="fa-solid fa-user-check me-1"></i> Quản Lý Chủ Nhà & Duyệt Yêu Cầu
-                    </a>
+                    <ul class="dropdown-menu border-0 shadow-sm rounded-3">
+                        <li><a class="dropdown-item" th:href="@{/admin/users}"><i class="fa-solid fa-users me-2"></i>Quản Lý Người Dùng</a></li>
+                        <li><a class="dropdown-item" th:href="@{/admin/hosts}"><i class="fa-solid fa-user-check me-2"></i>Quản Lý Chủ Nhà & Duyệt Yêu Cầu</a></li>
+                    </ul>
                 </li>
             </ul>
 
-            <!-- [CẢI TIẾN]: Hiển thị nút Đăng Nhập/Đăng Ký hoặc Menu Dropdown Tài Khoản & Đăng Xuất tùy theo trạng thái đăng nhập -->
+            <!-- Dropdown Tài Khoản / Login -->
             <div class="d-flex align-items-center gap-2">
                 <!-- Khi CHƯA ĐĂNG NHẬP -->
                 <th:block th:if="${session.currentUser == null}">
-                    <a th:href="@{/login}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                    <a th:href="@{/login}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">
                         <i class="fa-solid fa-right-to-bracket me-1"></i> Đăng Nhập
                     </a>
-                    <a th:href="@{/register}" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <a th:href="@{/register}" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
                         <i class="fa-solid fa-user-plus me-1"></i> Đăng Ký
                     </a>
                 </th:block>
 
                 <!-- Khi ĐÃ ĐĂNG NHẬP -->
                 <th:block th:if="${session.currentUser != null}">
-                    <!-- Nút Thông Báo -->
-                    <a th:href="@{/notifications}" class="btn btn-light btn-sm rounded-circle position-relative me-2">
+                    <a th:href="@{/notifications}" class="btn btn-light btn-sm rounded-circle position-relative me-1" title="Thông báo">
                         <i class="fa-solid fa-bell text-secondary"></i>
                     </a>
 
-                    <!-- Dropdown Tài Khoản -->
                     <div class="dropdown">
-                        <button class="btn btn-light btn-sm rounded-pill dropdown-toggle fw-semibold px-3" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-light btn-sm rounded-pill dropdown-toggle fw-semibold px-3 border" type="button" data-bs-toggle="dropdown">
                             <i class="fa-solid fa-circle-user text-primary me-1"></i>
                             <span th:text="${session.currentUser.fullName}">User</span>
                         </button>
@@ -158,10 +155,9 @@
                         </ul>
                     </div>
 
-                    <!-- Nút Đăng Tin Cho Thuê (Dành riêng cho Host hoặc Admin) -->
                     <a th:if="${session.currentUser.role.name() == 'ROLE_HOST' or session.currentUser.role.name() == 'ROLE_ADMIN'}" 
-                       th:href="@{/houses/create}" class="btn btn-outline-primary btn-sm rounded-pill px-3 ms-2">
-                        <i class="fa-solid fa-plus me-1"></i> Đăng Tin Cho Thuê
+                       th:href="@{/houses/create}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold ms-1">
+                        <i class="fa-solid fa-plus me-1"></i> Đăng Tin
                     </a>
                 </th:block>
             </div>
@@ -171,19 +167,19 @@
 
 <!-- Alert Messages -->
 <div class="container mt-3" th:if="${successMessage}">
-    <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+    <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm" role="alert">
         <i class="fa-solid fa-circle-check me-2"></i> <span th:text="${successMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 </div>
 <div class="container mt-3" th:if="${errorMessage}">
-    <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm" role="alert">
         <i class="fa-solid fa-triangle-exclamation me-2"></i> <span th:text="${errorMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 </div>
 <div class="container mt-3" th:if="${infoMessage}">
-    <div class="alert alert-info alert-dismissible fade show rounded-3" role="alert">
+    <div class="alert alert-info alert-dismissible fade show rounded-3 shadow-sm" role="alert">
         <i class="fa-solid fa-circle-info me-2"></i> <span th:text="${infoMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -194,7 +190,7 @@
     <div th:replace="${content}"></div>
 </main>
 
-<!-- Footer - Task 25: Thông tin chính xác cho toàn hệ thống -->
+<!-- Footer -->
 <footer class="footer text-center text-muted mt-auto">
     <div class="container">
         <div class="row g-3 align-items-center">
@@ -206,14 +202,32 @@
                 <small>© 2026 HouseRental System. Tất cả quyền được bảo lưu.</small>
             </div>
             <div class="col-md-6 text-md-end">
-                <small class="d-block">Hệ thống cho thuê nhà trực tuyến</small>
+                <small class="d-block">Hệ thống cho thuê nhà trực tuyến hàng đầu</small>
                 <small>Spring Boot 3.3.5 · JPA · Thymeleaf · Bootstrap 5 · Java 17</small>
             </div>
         </div>
     </div>
 </footer>
 
-<!-- Bootstrap 5 JS Bundle -->
+<!-- JS Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Trumbowyg/2.27.0/trumbowyg.min.js"></script>
+<script>
+    $(document).ready(function() {
+        if ($('.wysiwyg-editor').length > 0) {
+            $('.wysiwyg-editor').trumbowyg({
+                btns: [
+                    ['formatting'],
+                    ['bold', 'italic', 'underline'],
+                    ['link'],
+                    ['unorderedList', 'orderedList'],
+                    ['removeformat'],
+                    ['fullscreen']
+                ]
+            });
+        }
+    });
+</script>
 </body>
 </html>
