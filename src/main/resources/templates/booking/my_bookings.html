@@ -18,38 +18,55 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Hình Ảnh & Tên Nhà</th>
-                        <th>Thời Gian Thuê</th>
-                        <th>Tổng Số Tiền</th>
-                        <th>Trạng Thái Duyệt</th>
-                    </tr>
+                <tr>
+                    <th class="ps-4">Hình Ảnh & Tên Nhà</th>
+                    <th>Thời Gian Thuê</th>
+                    <th>Tổng Số Tiền</th>
+                    <th>Trạng Thái Duyệt</th>
+                    <th>Hành Động</th>
+                </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="b : ${bookings}">
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <img th:src="${b.house.thumbnailUrl}" class="rounded-3" style="width: 70px; height: 50px; object-fit: cover;">
-                                <div>
-                                    <a th:href="@{'/houses/' + ${b.house.id}}" class="fw-bold text-dark text-decoration-none" th:text="${b.house.name}"></a>
-                                    <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> <span th:text="${b.house.address}"></span></div>
-                                </div>
+                <tr th:each="b : ${bookings}">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <img th:src="${b.house.thumbnailUrl}" class="rounded-3"
+                                 style="width: 70px; height: 50px; object-fit: cover;">
+                            <div>
+                                <a th:href="@{'/houses/' + ${b.house.id}}"
+                                   class="fw-bold text-dark text-decoration-none" th:text="${b.house.name}"></a>
+                                <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> <span
+                                        th:text="${b.house.address}"></span></div>
                             </div>
-                        </td>
-                        <td>
-                            <div class="small">
-                                <div>Từ: <strong th:text="${b.startDate}"></strong></div>
-                                <div>Đến: <strong th:text="${b.endDate}"></strong></div>
-                            </div>
-                        </td>
-                        <td class="fw-bold text-primary" th:text="${#numbers.formatDecimal(b.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
-                        <td>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            <div>Từ: <strong th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}">01/01/2026</strong></div>
+                            <div>Đến: <strong th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}">05/01/2026</strong></div>
+                        </div>
+                    </td>
+                    <td class="fw-bold text-primary"
+                        th:text="${#numbers.formatDecimal(b.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
+                    <td>
                             <span class="badge px-3 py-2 rounded-pill"
                                   th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger')}"
-                                  th:text="${b.status}">
+                                  th:text="${b.getStatusVietnamese()}">
                             </span>
-                        </td>
-                    </tr>
+                    </td>
+                    <td>
+                        <!-- Hủy yêu cầu đặt nhà khi PENDING hoặc khi APPROVED trước ngày nhận phòng >= 1 ngày -->
+                        <form th:if="${b.status.name() == 'PENDING' or (b.status.name() == 'APPROVED' and T(java.time.LocalDate).now().isBefore(b.startDate))}" 
+                              th:action="@{'/bookings/' + ${b.id} + '/cancel'}" method="post"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu thuê nhà này? (Lưu ý: Hủy trước ngày nhận phòng 1 ngày)');">
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill">
+                                <i class="fa-solid fa-xmark me-1"></i> Hủy Đơn Thuê
+                            </button>
+                        </form>
+                        <span th:if="${b.status.name() == 'APPROVED' and not T(java.time.LocalDate).now().isBefore(b.startDate)}"
+                              class="text-muted small fst-italic">Không thể hủy</span>
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>

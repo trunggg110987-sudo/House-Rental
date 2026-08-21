@@ -34,13 +34,35 @@ public class User {
 
     private String phone;
 
+    private String address;
+
+    // [BỔ SUNG THEO YÊU CẦU TASK 3]: Bổ sung đường dẫn ảnh đại diện avatarUrl (mặc định nếu null)
+    @Builder.Default
+    private String avatarUrl = "https://www.magnific.com/icon/user_4596193";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    private HostStatus hostStatus = HostStatus.NONE;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
 
     public enum Role {
         ROLE_USER,
         ROLE_HOST,
         ROLE_ADMIN
+    }
+
+    public enum HostStatus {
+        NONE,
+        PENDING,
+        APPROVED,
+        REJECTED
     }
 }

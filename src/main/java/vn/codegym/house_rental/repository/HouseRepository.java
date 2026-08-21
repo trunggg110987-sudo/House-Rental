@@ -8,17 +8,23 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
+import java.util.List;
+import vn.codegym.house_rental.model.User;
 
 @Repository
 public interface HouseRepository extends JpaRepository<House, Long> {
 
     Page<House> findByHost(User host, Pageable pageable);
+    Page<House> findByHostAndStatus(User host, House.HouseStatus status, Pageable pageable);
+    long countByHost(User host);
+
+    List<House> findByHost(User host);
 
     @Query("SELECT h FROM House h WHERE " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
-           "(:minPrice IS NULL OR h.pricePerMonth >= :minPrice) AND " +
-           "(:maxPrice IS NULL OR h.pricePerMonth <= :maxPrice)")
+           "(:minPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) <= :maxPrice)")
     Page<House> searchHouses(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
@@ -26,4 +32,26 @@ public interface HouseRepository extends JpaRepository<House, Long> {
             @Param("maxPrice") Double maxPrice,
             Pageable pageable
     );
+
+    @Query("SELECT h FROM House h WHERE " +
+           "h.status = vn.codegym.house_rental.model.House.HouseStatus.AVAILABLE AND " +
+           "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
+           "(:minPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) <= :maxPrice)")
+    Page<House> searchAvailableHouses(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT b.house FROM Booking b
+            WHERE b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            GROUP BY b.house
+            ORDER BY COUNT(b) DESC
+            """)
+    List<House> findTopRentedHouses(Pageable pageable);
 }

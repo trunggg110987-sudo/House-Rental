@@ -1,117 +1,61 @@
 <!DOCTYPE html>
-<html lang="vi"
-      xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- [BỔ SUNG THEO YÊU CẦU TASK 1, 2 & 6]: Đăng nhập hỗ trợ nút Google Login, auto-fill username sau đăng ký và hiển thị cảnh báo lỗi -->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Đăng nhập - House Rental', ~{:: #loginContent})}">
+<body>
 
-    <title>Đăng nhập - House Rental</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-          rel="stylesheet">
-</head>
-
-<body class="bg-light">
-
-<div class="container">
-
-    <div class="row justify-content-center align-items-center vh-100">
-
+<div id="loginContent" class="container my-5">
+    <div class="row justify-content-center">
         <div class="col-md-5 col-lg-4">
-
-            <div class="card shadow-lg border-0 rounded-4">
-
-                <div class="card-body p-4">
-
-                    <h2 class="text-center mb-4">
-                        House Rental
-                    </h2>
-
-                    <p class="text-center text-muted mb-4">
-                        Đăng nhập vào hệ thống
-                    </p>
-
-                    <!-- Login Error -->
-                    <div th:if="${param.error}"
-                         class="alert alert-danger">
-                        Sai tên đăng nhập hoặc mật khẩu.
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                             style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-right-to-bracket fa-xl"></i>
+                        </div>
+                        <h4 class="fw-bold">Đăng Nhập</h4>
+                        <p class="text-muted small">Chào mừng bạn quay trở lại với HouseRental</p>
                     </div>
 
-                    <!-- Logout Success -->
-                    <div th:if="${param.logout}"
-                         class="alert alert-success">
-                        Đăng xuất thành công.
-                    </div>
+                    <!-- [BỔ SUNG THEO YÊU CẦU TASK 2]: Hiển thị thông báo cảnh báo màu đỏ khi sai thông tin đăng nhập -->
+                    <div th:if="${errorMessage}" class="alert alert-danger rounded-3" th:text="${errorMessage}"></div>
 
-                    <form th:action="@{/login}" method="post">
-
+                    <form th:action="@{/login}" th:object="${login}" method="post">
+                        <!-- [BỔ SUNG THEO YÊU CẦU TASK 1]: Tự động điền sẵn Username nếu vừa hoàn tất đăng ký thành công -->
                         <div class="mb-3">
-
-                            <label class="form-label">
-                                Tên đăng nhập
-                            </label>
-
-                            <input
-                                    type="text"
-                                    name="username"
-                                    class="form-control"
-                                    placeholder="Nhập tên đăng nhập"
-                                    required>
-
+                            <label for="username" class="form-label fw-semibold">Tên đăng nhập</label>
+                            <input type="text" id="username" th:field="*{username}" 
+                                   class="form-control rounded-3"
+                                   placeholder="Nhập tên đăng nhập..." required>
                         </div>
 
                         <div class="mb-4">
-
-                            <label class="form-label">
-                                Mật khẩu
-                            </label>
-
-                            <input
-                                    type="password"
-                                    name="password"
-                                    class="form-control"
-                                    placeholder="Nhập mật khẩu"
-                                    required>
-
+                            <label for="password" class="form-label fw-semibold">Mật khẩu</label>
+                            <input type="password" id="password" name="password" class="form-control rounded-3"
+                                   placeholder="Nhập mật khẩu..." required>
                         </div>
 
-                        <div class="d-grid">
-
-                            <button
-                                    type="submit"
-                                    class="btn btn-primary">
-
-                                Đăng nhập
-
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary py-2 rounded-3 fw-semibold">
+                                <i class="fa-solid fa-paper-plane me-1"></i> Đăng Nhập
                             </button>
-
                         </div>
-
                     </form>
+
+
 
                     <hr>
 
-                    <div class="text-center">
-
+                    <div class="text-center text-muted small">
                         Chưa có tài khoản?
-
-                        <a th:href="@{/register}">
-                            Đăng ký
-                        </a>
-
+                        <a th:href="@{/register}" class="fw-semibold text-decoration-none">Đăng ký ngay</a>
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

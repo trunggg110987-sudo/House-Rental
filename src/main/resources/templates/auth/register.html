@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!-- [BỔ SUNG THEO YÊU CẦU TASK 7]: Đăng ký tài khoản hỗ trợ 2 Tab: Đăng ký Khách thuê và Đăng ký Làm Chủ Nhà riêng biệt -->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Đăng ký tài khoản', ~{:: #registerContent})}">
+<body>
+
+<div id="registerContent" class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                             style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-user-plus fa-xl"></i>
+                        </div>
+                        <h4 class="fw-bold">Đăng Ký Tài Khoản</h4>
+                        <p class="text-muted small">Bắt đầu trải nghiệm dịch vụ HouseRental</p>
+                    </div>
+
+                    <!-- [BỔ SUNG THEO YÊU CẦU TASK 7]: Tab chọn Đăng ký Người thuê hoặc Đăng ký Làm chủ nhà -->
+                    <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3" id="registerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-3 fw-semibold py-2" id="user-tab" data-bs-toggle="pill"
+                                    data-bs-target="#user-pane" type="button" role="tab" onclick="setHostMode(false)">
+                                <i class="fa-solid fa-user me-1"></i> Khách Thuê
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-3 fw-semibold py-2" id="host-tab" data-bs-toggle="pill"
+                                    data-bs-target="#user-pane" type="button" role="tab" onclick="setHostMode(true)">
+                                <i class="fa-solid fa-house-user me-1"></i> Làm Chủ Nhà
+                            </button>
+                        </li>
+                    </ul>
+
+                    <form th:action="@{/register}" th:object="${register}" method="post" novalidate>
+                        <!-- Field ẩn đánh dấu Đăng ký Làm Chủ nhà -->
+                        <input type="hidden" id="isHostInput" th:field="*{host}" value="false">
+
+                        <!-- tên đăng nhập -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-semibold">Tên đăng nhập <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="username" th:field="*{username}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('username')} ? 'is-invalid' : ''"
+                                   placeholder="Nhập tên đăng nhập...">
+                            <div th:if="${#fields.hasErrors('username')}" th:errors="*{username}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- họ và tên -->
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label fw-semibold">Họ và tên <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="fullName" th:field="*{fullName}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''"
+                                   placeholder="Nhập họ và tên...">
+                            <div th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">Email <span
+                                    class="text-danger">*</span></label>
+                            <input type="email" id="email" th:field="*{email}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
+                                   placeholder="abcxyz@gmail.com">
+                            <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- số điện thoại -->
+                        <div class="mb-3">
+                            <label for="phone" class="form-label fw-semibold">Số điện thoại</label>
+                            <input type="text" id="phone" th:field="*{phone}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''"
+                                   placeholder="0901234567">
+                            <div th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- mật khẩu -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-semibold">Mật khẩu (6-32 ký tự) <span
+                                    class="text-danger">*</span></label>
+                            <input type="password" id="password" th:field="*{password}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('password')} ? 'is-invalid' : ''"
+                                   placeholder="Nhập mật khẩu từ 6-32 ký tự...">
+                            <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- xác nhận mật khẩu -->
+                        <div class="mb-4">
+                            <label for="confirmPassword" class="form-label fw-semibold">Xác nhận mật khẩu <span
+                                    class="text-danger">*</span></label>
+                            <input type="password" id="confirmPassword" th:field="*{confirmPassword}"
+                                   class="form-control rounded-3"
+                                   th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid' : ''"
+                                   placeholder="Nhập lại mật khẩu...">
+                            <div th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"
+                                 class="invalid-feedback"></div>
+                        </div>
+
+                        <!-- Nút gửi form -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" id="submitBtn" class="btn btn-primary py-2 rounded-3 fw-semibold">
+                                <i class="fa-solid fa-paper-plane me-1"></i> Hoàn Tất Đăng Ký
+                            </button>
+                        </div>
+                    </form>
+
+                    <script>
+                        function setHostMode(isHost) {
+                            document.getElementById('isHostInput').value = isHost;
+                            const btn = document.getElementById('submitBtn');
+                            if (isHost) {
+                                btn.innerHTML = '<i class="fa-solid fa-house-user me-1"></i> Đăng Ký Làm Chủ Nhà';
+                                btn.className = 'btn btn-success py-2 rounded-3 fw-semibold';
+                            } else {
+                                btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Hoàn Tất Đăng Ký';
+                                btn.className = 'btn btn-primary py-2 rounded-3 fw-semibold';
+                            }
+                        }
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

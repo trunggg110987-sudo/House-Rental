@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "bookings")
@@ -34,14 +35,27 @@ public class Booking {
     @JoinColumn(name = "user_id", nullable = false)
     private User renter;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "house_id", nullable = false)
     private House house;
+
 
     public enum BookingStatus {
         PENDING,   // Chờ chủ nhà duyệt
         APPROVED,  // Đã được chấp nhận
         REJECTED,  // Đã bị từ chối
         CANCELLED  // Người thuê hủy
+    }
+
+    public String getStatusVietnamese() {
+        if (status == null) return "Không xác định";
+        switch (status) {
+            case PENDING: return "Chờ duyệt";
+            case APPROVED: return "Đã phê duyệt";
+            case REJECTED: return "Đã từ chối";
+            case CANCELLED: return "Đã hủy";
+            default: return status.name();
+        }
     }
 }

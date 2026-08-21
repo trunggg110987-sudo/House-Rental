@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout(
+      ~{'Quản lý người dùng'},
+      ~{::content})}">
+
+<th:block th:fragment="content">
+
+    <div class="container py-4">
+
+        <!-- Tiêu đề + Tabs -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+
+            <div>
+                <h2 class="fw-bold">
+                    <i class="fa-solid fa-users text-primary me-2"></i>
+                    Quản lý người dùng
+                </h2>
+
+                <p class="text-muted mb-0">
+                    Danh sách tài khoản trong hệ thống
+                </p>
+            </div>
+
+            <!-- Tabs chuyển trang -->
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <a class="nav-link active fw-bold"
+                       th:href="@{/admin/users}">
+                        <i class="fa-solid fa-users me-1"></i>
+                        Tất Cả Người Dùng
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-dark fw-semibold bg-white border ms-2"
+                       th:href="@{/admin/hosts}">
+                        <i class="fa-solid fa-user-check me-1"></i>
+                        Quản Lý Chủ Nhà & Duyệt Yêu Cầu
+                    </a>
+                </li>
+            </ul>
+
+        </div>
+
+        <!-- Bảng danh sách -->
+        <div class="card shadow-sm border-0 rounded-4">
+
+            <div class="card-body">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead class="table-primary">
+
+                        <tr>
+
+                            <th>STT</th>
+
+                            <th>Họ và tên</th>
+
+                            <th>Số điện thoại</th>
+
+                            <th>Trạng thái</th>
+
+                            <th class="text-center">
+                                Hành động
+                            </th>
+
+                        </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        <tr th:each="user, stat : ${users.content}">
+
+                            <!-- STT -->
+                            <td th:text="${users.number * users.size + stat.index + 1}">
+                                1
+                            </td>
+
+                            <!-- Họ tên -->
+                            <td>
+                                <div class="fw-semibold"
+                                     th:text="${user.fullName}">
+                                    Nguyễn Văn A
+                                </div>
+                            </td>
+
+                            <!-- Số điện thoại -->
+                            <td th:text="${user.phone}">
+                                0123456789
+                            </td>
+
+                            <!-- Trạng thái -->
+                            <td>
+
+                                <span th:if="${user.active}"
+                                      class="badge bg-success">
+                                    <i class="fa-solid fa-circle-check me-1"></i>
+                                    Đang hoạt động
+                                </span>
+
+                                <span th:unless="${user.active}"
+                                      class="badge bg-danger">
+                                    <i class="fa-solid fa-lock me-1"></i>
+                                    Đã khóa
+                                </span>
+
+                            </td>
+
+                            <!-- Hành động -->
+                            <td class="text-center">
+
+                                <!-- Chi tiết -->
+                                <a th:href="@{/admin/users/{id}(id=${user.id})}"
+                                   class="btn btn-info btn-sm">
+
+                                    <i class="fa-solid fa-eye me-1"></i>
+                                    Chi tiết
+
+                                </a>
+
+                                <!-- Khóa -->
+                                <form th:if="${user.active}"
+                                      th:action="@{/admin/users/{id}/lock(id=${user.id})}"
+                                      method="post"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn khóa người dùng này?');">
+
+                                    <button type="submit"
+                                            class="btn btn-warning btn-sm">
+
+                                        <i class="fa-solid fa-lock me-1"></i>
+                                        Khóa
+
+                                    </button>
+
+                                </form>
+
+                                <!-- Mở khóa -->
+                                <form th:unless="${user.active}"
+                                      th:action="@{/admin/users/{id}/unlock(id=${user.id})}"
+                                      method="post"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn mở khóa người dùng này?');">
+
+                                    <button type="submit"
+                                            class="btn btn-success btn-sm">
+
+                                        <i class="fa-solid fa-lock-open me-1"></i>
+                                        Mở khóa
+
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                        <!-- Không có người dùng -->
+                        <tr th:if="${users.content.empty}">
+                            <td colspan="5"
+                                class="text-center text-muted py-4">
+
+                                <i class="fa-solid fa-users-slash fa-2x mb-2"></i>
+
+                                <p class="mb-0">
+                                    Chưa có người dùng nào.
+                                </p>
+
+                            </td>
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Phân trang -->
+        <nav class="mt-4"
+             th:if="${users.totalPages > 1}">
+
+            <ul class="pagination justify-content-center">
+
+                <!-- Previous -->
+                <li class="page-item"
+                    th:classappend="${users.first} ? 'disabled'">
+
+                    <a class="page-link"
+                       th:href="@{/admin/users(page=${users.number - 1})}">
+
+                        <i class="fa-solid fa-chevron-left"></i>
+                        Trước
+
+                    </a>
+
+                </li>
+
+
+                <!-- Số trang -->
+                <li class="page-item"
+                    th:each="i : ${#numbers.sequence(0, users.totalPages - 1)}"
+                    th:classappend="${i == users.number} ? 'active'">
+
+                    <a class="page-link"
+                       th:text="${i + 1}"
+                       th:href="@{/admin/users(page=${i})}">
+                    </a>
+
+                </li>
+
+
+                <!-- Next -->
+                <li class="page-item"
+                    th:classappend="${users.last} ? 'disabled'">
+
+                    <a class="page-link"
+                       th:href="@{/admin/users(page=${users.number + 1})}">
+
+                        Sau
+                        <i class="fa-solid fa-chevron-right"></i>
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+        </nav>
+
+    </div>
+
+</th:block>
+
+</html>

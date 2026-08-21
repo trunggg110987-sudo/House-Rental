@@ -15,6 +15,8 @@ import vn.codegym.house_rental.service.UserService;
 
 import java.util.Optional;
 
+import jakarta.servlet.http.HttpSession;
+
 @Controller
 @RequestMapping("/bookings")
 public class BookingController {
@@ -30,55 +32,70 @@ public class BookingController {
 
     // Gửi yêu cầu đặt phòng (Renter)
     @PostMapping("/create")
-    public String createBooking(
-            @RequestParam("houseId") Long houseId,
-            @ModelAttribute("booking") Booking booking,
-            RedirectAttributes redirectAttributes) {
+    public String createBooking(@RequestParam("houseId") Long houseId,
+                                @ModelAttribute("booking") Booking booking,
+                                HttpSession session,
+                                RedirectAttributes redirectAttributes) {
 
-        Optional<House> houseOptional = houseService.findById(houseId);
-        Optional<User> renterOptional = userService.findByUsername("user1"); // Renter giả lập
-
-        if (houseOptional.isPresent() && renterOptional.isPresent()) {
-            bookingService.createBooking(houseOptional.get(), renterOptional.get(), booking);
-            redirectAttributes.addFlashAttribute("successMessage", "Gửi yêu cầu thuê nhà thành công! Vui lòng chờ chủ nhà phê duyệt.");
-            return "redirect:/bookings/my-bookings";
+        // [CẢI TIẾN]: Loại bỏ hardcode "user1", lấy tài khoản đang đăng nhập từ Session
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
         }
 
-        redirectAttributes.addFlashAttribute("errorMessage", "Không thể hoàn tất gửi yêu cầu đặt nhà.");
-        return "redirect:/houses/" + houseId;
+        Optional<House> houseOptional = houseService.findById(houseId);
+        if (houseOptional.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy thông tin nhà.");
+            return "redirect:/";
+        }
+
+        try {
+            bookingService.createBooking(houseOptional.get(), currentUser, booking);
+            redirectAttributes.addFlashAttribute("successMessage", "Gửi yêu cầu thuê nhà thành công! Vui lòng chờ chủ nhà phê duyệt.");
+            return "redirect:/bookings/my-bookings";
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/houses/" + houseId;
+        }
     }
 
     // Danh sách đơn thuê của Khách (My Bookings)
     @GetMapping("/my-bookings")
-    public String myBookings(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "5") int size,
-            Model model) {
+    public String myBookings(@RequestParam(name = "page", defaultValue = "0") int page,
+                             @RequestParam(name = "size", defaultValue = "5") int size,
+                             HttpSession session,
+                             Model model) {
 
-        Optional<User> renterOptional = userService.findByUsername("user1");
-        if (renterOptional.isPresent()) {
-            Page<Booking> bookingPage = bookingService.findByRenter(renterOptional.get(), page, size);
-            model.addAttribute("bookings", bookingPage.getContent());
-            model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", bookingPage.getTotalPages());
+        // [CẢI TIẾN]: Loại bỏ hardcode "user1", lấy tài khoản đang đăng nhập từ Session
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
         }
+
+        Page<Booking> bookingPage = bookingService.findByRenter(currentUser, page, size);
+        model.addAttribute("bookings", bookingPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", bookingPage.getTotalPages());
         return "booking/my_bookings";
     }
 
     // Quản lý yêu cầu thuê phòng dành cho Chủ nhà (Host Dashboard)
     @GetMapping("/host-requests")
-    public String hostRequests(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "5") int size,
-            Model model) {
+    public String hostRequests(@RequestParam(name = "page", defaultValue = "0") int page,
+                               @RequestParam(name = "size", defaultValue = "5") int size,
+                               HttpSession session,
+                               Model model) {
 
-        Optional<User> hostOptional = userService.findByUsername("host1");
-        if (hostOptional.isPresent()) {
-            Page<Booking> bookingPage = bookingService.findByHost(hostOptional.get(), page, size);
-            model.addAttribute("bookings", bookingPage.getContent());
-            model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", bookingPage.getTotalPages());
+        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy tài khoản Host đang đăng nhập từ Session
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
         }
+
+        Page<Booking> bookingPage = bookingService.findByHost(currentUser, page, size);
+        model.addAttribute("bookings", bookingPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", bookingPage.getTotalPages());
         return "booking/host_requests";
     }
 
@@ -96,5 +113,22 @@ public class BookingController {
         bookingService.updateStatus(id, Booking.BookingStatus.REJECTED);
         redirectAttributes.addFlashAttribute("infoMessage", "Đã từ chối yêu cầu đặt nhà!");
         return "redirect:/bookings/host-requests";
+    }
+
+    // [CẢI TIẾN]: Bổ sung endpoint cho phép Người thuê tự hủy đơn đặt phòng khi đang PENDING
+    @PostMapping("/{id}/cancel")
+    public String cancelBooking(@PathVariable("id") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            bookingService.cancelBooking(id, currentUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn đặt nhà thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/bookings/my-bookings";
     }
 }

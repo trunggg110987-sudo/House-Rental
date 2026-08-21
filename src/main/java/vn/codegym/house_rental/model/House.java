@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "houses")
 @Getter
@@ -26,8 +29,10 @@ public class House {
     @NotBlank(message = "Địa chỉ không được để trống")
     private String address;
 
-    @NotNull(message = "Giá thuê không được để trống")
+    @NotNull(message = "Giá thuê theo ngày không được để trống")
     @Min(value = 0, message = "Giá thuê phải lớn hơn 0")
+    private Double pricePerDay;
+
     private Double pricePerMonth;
 
     @Min(value = 1, message = "Số phòng ngủ tối thiểu là 1")
@@ -40,6 +45,14 @@ public class House {
     private String description;
 
     private String thumbnailUrl;
+
+    @OneToMany(mappedBy = "house", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<HouseImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "house", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<HouseStatusPeriod> statusPeriods = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,8 +67,28 @@ public class House {
     private User host;
 
     public enum HouseStatus {
-        AVAILABLE,   // Có sẵn cho thuê
-        RENTED,      // Đã được thuê
+        AVAILABLE,   // Còn trống
+        RENTED,      // Đã cho thuê
         MAINTENANCE  // Đang bảo trì
+    }
+
+    public String getStatusVietnamese() {
+        if (status == null) return "Không xác định";
+        switch (status) {
+            case AVAILABLE: return "Còn trống";
+            case RENTED: return "Đã cho thuê";
+            case MAINTENANCE: return "Đang bảo trì";
+            default: return status.name();
+        }
+    }
+
+    public Double getDisplayPricePerDay() {
+        if (pricePerDay != null && pricePerDay > 0) {
+            return pricePerDay;
+        }
+        if (pricePerMonth != null && pricePerMonth > 0) {
+            return Math.round((pricePerMonth / 30.0) * 100.0) / 100.0;
+        }
+        return 0.0;
     }
 }
