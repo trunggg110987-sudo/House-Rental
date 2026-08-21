@@ -42,8 +42,8 @@
                     </td>
                     <td>
                         <div class="small">
-                            <div>Từ: <strong th:text="${b.startDate}"></strong></div>
-                            <div>Đến: <strong th:text="${b.endDate}"></strong></div>
+                            <div>Từ: <strong th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}">01/01/2026</strong></div>
+                            <div>Đến: <strong th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}">05/01/2026</strong></div>
                         </div>
                     </td>
                     <td class="fw-bold text-primary"
@@ -51,17 +51,20 @@
                     <td>
                             <span class="badge px-3 py-2 rounded-pill"
                                   th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger')}"
-                                  th:text="${b.status}">
+                                  th:text="${b.getStatusVietnamese()}">
                             </span>
                     </td>
                     <td>
-                        <!-- [CẢI TIẾN]: Bổ sung nút Hủy yêu cầu đặt nhà khi đơn hàng đang ở trạng thái PENDING -->
-                        <form th:if="${b.status.name() == 'PENDING'}" th:action="@{'/bookings/' + ${b.id} + '/cancel'}" method="post"
-                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu đặt nhà này?');">
+                        <!-- Hủy yêu cầu đặt nhà khi PENDING hoặc khi APPROVED trước ngày nhận phòng >= 1 ngày -->
+                        <form th:if="${b.status.name() == 'PENDING' or (b.status.name() == 'APPROVED' and T(java.time.LocalDate).now().isBefore(b.startDate))}" 
+                              th:action="@{'/bookings/' + ${b.id} + '/cancel'}" method="post"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu thuê nhà này? (Lưu ý: Hủy trước ngày nhận phòng 1 ngày)');">
                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill">
-                                <i class="fa-solid fa-xmark me-1"></i> Hủy Yêu Cầu
+                                <i class="fa-solid fa-xmark me-1"></i> Hủy Đơn Thuê
                             </button>
                         </form>
+                        <span th:if="${b.status.name() == 'APPROVED' and not T(java.time.LocalDate).now().isBefore(b.startDate)}"
+                              class="text-muted small fst-italic">Không thể hủy</span>
                     </td>
                 </tr>
                 </tbody>

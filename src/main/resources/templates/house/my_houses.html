@@ -63,8 +63,8 @@
                             th:text="${h.address}"></span></p>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="price-text fs-5 fw-bold text-primary"
-                              th:text="${#numbers.formatDecimal(h.pricePerMonth, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></span>
-                        <span class="badge px-3 py-2 rounded-pill fs-6" th:classappend="'badge-status-' + ${h.status}" th:text="${h.status}"></span>
+                              th:text="${#numbers.formatDecimal(h.getDisplayPricePerDay(), 0, 'COMMA', 0, 'POINT')} + ' VNĐ / ngày'"></span>
+                        <span class="badge px-3 py-2 rounded-pill fs-6" th:classappend="'badge-status-' + ${h.status.name()}" th:text="${h.getStatusVietnamese()}"></span>
                     </div>
 
                     <!-- Hành động Chủ nhà (Task 28, 29, 30) -->

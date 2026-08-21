@@ -47,4 +47,15 @@ public class Booking {
         REJECTED,  // Đã bị từ chối
         CANCELLED  // Người thuê hủy
     }
+
+    public String getStatusVietnamese() {
+        if (status == null) return "Không xác định";
+        switch (status) {
+            case PENDING: return "Chờ duyệt";
+            case APPROVED: return "Đã phê duyệt";
+            case REJECTED: return "Đã từ chối";
+            case CANCELLED: return "Đã hủy";
+            default: return status.name();
+        }
+    }
 }

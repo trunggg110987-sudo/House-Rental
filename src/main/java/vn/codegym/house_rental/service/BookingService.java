@@ -39,7 +39,7 @@ public class BookingService {
     }
 
     public Booking createBooking(House house, User renter, Booking booking) {
-        // [CẢI TIẾN]: Validate Ngày bắt đầu và Ngày kết thúc hợp lệ
+        // Validate Ngày bắt đầu và Ngày kết thúc hợp lệ
         if (booking.getStartDate() == null || booking.getEndDate() == null) {
             throw new IllegalArgumentException("Ngày bắt đầu và ngày kết thúc không được để trống.");
         }
@@ -50,7 +50,23 @@ public class BookingService {
             throw new IllegalArgumentException("Ngày kết thúc thuê phải sau ngày bắt đầu thuê.");
         }
 
-        // [CẢI TIẾN]: Kiểm tra xem nhà có bị trùng lịch đã duyệt trong khoảng thời gian này không
+        // Kiểm tra căn nhà có đang ở trạng thái bảo trì không
+        if (house.getStatus() == House.HouseStatus.MAINTENANCE) {
+            throw new IllegalArgumentException("Căn nhà đang trong thời gian bảo trì, hiện tại không thể đặt phòng.");
+        }
+
+        // Kiểm tra lịch bảo trì theo khoảng thời gian
+        if (house.getStatusPeriods() != null) {
+            for (vn.codegym.house_rental.model.HouseStatusPeriod period : house.getStatusPeriods()) {
+                if (period.getStatus() == House.HouseStatus.MAINTENANCE) {
+                    if (booking.getStartDate().isBefore(period.getEndDate()) && booking.getEndDate().isAfter(period.getStartDate())) {
+                        throw new IllegalArgumentException("Căn nhà có lịch bảo trì từ ngày " + period.getStartDate() + " đến ngày " + period.getEndDate() + ".");
+                    }
+                }
+            }
+        }
+
+        // Kiểm tra trùng lịch đã duyệt trong khoảng thời gian này
         boolean isOverlapped = bookingRepository.existsOverlappingBooking(
                 house.getId(), booking.getStartDate(), booking.getEndDate()
         );
@@ -63,8 +79,9 @@ public class BookingService {
         booking.setStatus(Booking.BookingStatus.PENDING);
 
         long days = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate());
-        double monthlyRate = house.getPricePerMonth() != null ? house.getPricePerMonth() : 0;
-        double totalPrice = (monthlyRate / 30.0) * days;
+        if (days <= 0) days = 1;
+        double dailyRate = house.getDisplayPricePerDay();
+        double totalPrice = dailyRate * days;
         booking.setTotalPrice(Math.round(totalPrice * 100.0) / 100.0);
 
         return bookingRepository.save(booking);
@@ -75,17 +92,24 @@ public class BookingService {
         if (optionalBooking.isPresent()) {
             Booking booking = optionalBooking.get();
             booking.setStatus(status);
+            bookingRepository.save(booking);
+
+            // Cập nhật trạng thái nhà nếu thích hợp nhưng không xóa bỏ trạng thái khác nếu có đơn approved khác
+            House house = booking.getHouse();
             if (status == Booking.BookingStatus.APPROVED) {
-                booking.getHouse().setStatus(House.HouseStatus.RENTED);
+                house.setStatus(House.HouseStatus.RENTED);
             } else if (status == Booking.BookingStatus.REJECTED || status == Booking.BookingStatus.CANCELLED) {
-                booking.getHouse().setStatus(House.HouseStatus.AVAILABLE);
+                boolean hasOtherApproved = bookingRepository.existsOverlappingBooking(house.getId(), LocalDate.now(), LocalDate.now().plusYears(10));
+                if (!hasOtherApproved && house.getStatus() != House.HouseStatus.MAINTENANCE) {
+                    house.setStatus(House.HouseStatus.AVAILABLE);
+                }
             }
-            return bookingRepository.save(booking);
+            return booking;
         }
         throw new RuntimeException("Không tìm thấy đơn đặt nhà ID: " + bookingId);
     }
 
-    // [CẢI TIẾN]: Bổ sung phương thức cho phép Người thuê tự hủy đơn đặt phòng khi đang ở trạng thái PENDING
+    // Quy tắc Hủy đơn trước 1 ngày (Allow cancellation for PENDING or APPROVED at least 1 day before startDate)
     public void cancelBooking(Long bookingId, User renter) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt nhà"));
@@ -94,11 +118,25 @@ public class BookingService {
             throw new IllegalStateException("Bạn không có quyền hủy đơn đặt nhà này");
         }
 
-        if (booking.getStatus() != Booking.BookingStatus.PENDING) {
-            throw new IllegalStateException("Chỉ có thể hủy đơn đặt nhà khi đang ở trạng thái Chờ duyệt");
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED || booking.getStatus() == Booking.BookingStatus.REJECTED) {
+            throw new IllegalStateException("Đơn đặt nhà này đã ở trạng thái bị hủy hoặc bị từ chối");
+        }
+
+        // Logic kiểm tra 1 ngày trước startDate
+        LocalDate today = LocalDate.now();
+        if (booking.getStatus() == Booking.BookingStatus.APPROVED) {
+            if (!today.isBefore(booking.getStartDate())) {
+                throw new IllegalStateException("Bạn chỉ có thể hủy đơn thuê nhà trước ngày bắt đầu thuê (ngày nhận phòng) tối thiểu 1 ngày.");
+            }
         }
 
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+
+        House house = booking.getHouse();
+        boolean hasOtherApproved = bookingRepository.existsOverlappingBooking(house.getId(), LocalDate.now(), LocalDate.now().plusYears(10));
+        if (!hasOtherApproved && house.getStatus() != House.HouseStatus.MAINTENANCE) {
+            house.setStatus(House.HouseStatus.AVAILABLE);
+        }
     }
 }
