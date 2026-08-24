@@ -6,12 +6,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.codegym.house_rental.dto.MonthlyIncomeDTO;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.service.BookingService;
 import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
+import java.util.List;
 
 import java.util.Optional;
 
@@ -130,5 +132,23 @@ public class BookingController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/bookings/my-bookings";
+    }
+
+    @GetMapping("/income-statistics")
+    public String index(@RequestParam(name = "year", required = false) Integer year, HttpSession session, Model model){
+        User currentUser = (User) session.getAttribute("currentUser");
+        if(currentUser == null){
+            return "redirect:/login";
+        }
+
+        if(year == null){
+            year = java.time.LocalDate.now().getYear();
+        }
+
+       List<MonthlyIncomeDTO> dto = bookingService.getReviewMonthlyIncome(currentUser.getId(), year);
+        model.addAttribute("monthlyIncomes", dto);
+        model.addAttribute("selectedYear" , year);
+
+        return "booking/income_statistics";
     }
 }

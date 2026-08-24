@@ -52,4 +52,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
             """)
     Double getTotalSpent(@Param("renter") User renter);
+
+    @Query("""
+            SELECT new vn.codegym.house_rental.dto.MonthlyIncomeDTO(
+                MONTH(b.endDate),
+                COALESCE(SUM(b.totalPrice), 0.0)
+            )
+            FROM Booking b
+            WHERE b.house.host.id = :hostId
+            AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            AND YEAR(b.endDate) = :year
+            GROUP BY MONTH(b.endDate)
+            """)
+    List<vn.codegym.house_rental.dto.MonthlyIncomeDTO> getMonthlyIncomeByHostAndYear(@Param("hostId") Long hostId, @Param("year") int year);
 }
+
+

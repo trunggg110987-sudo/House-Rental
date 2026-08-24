@@ -6,15 +6,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import vn.codegym.house_rental.dto.MonthlyIncomeDTO;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
 
+import java.util.*;
+
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 
 // [CẢI TIẾN]: Bổ sung @Transactional đảm bảo tính toàn vẹn dữ liệu
 @Service
@@ -137,6 +139,39 @@ public class BookingService {
         boolean hasOtherApproved = bookingRepository.existsOverlappingBooking(house.getId(), LocalDate.now(), LocalDate.now().plusYears(10));
         if (!hasOtherApproved && house.getStatus() != House.HouseStatus.MAINTENANCE) {
             house.setStatus(House.HouseStatus.AVAILABLE);
+        }
+    }
+
+    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(Long hostId, int year){
+        List<MonthlyIncomeDTO> result = bookingRepository.getMonthlyIncomeByHostAndYear(hostId, year);
+
+        Map<Integer, Double> monthly = new HashMap<>();
+
+        for(int i = 1; i <= 12; i++){
+            monthly.put(i, 0.0);
+        }
+
+        for(MonthlyIncomeDTO dto : result){
+            monthly.put(dto.getMonth(), dto.getIncome());
+        }
+
+        List<MonthlyIncomeDTO> finalResult = new ArrayList<>();
+
+        for(int i = 1; i <= monthly.size(); i++){
+            Double income = monthly.get(i);
+            MonthlyIncomeDTO dto = new MonthlyIncomeDTO(i , income);
+            finalResult.add(dto);
+        }
+
+        return finalResult;
+    }
+
+    public void checkIn(Long bookingId, User currentHost){
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));
+
+        if(!booking.getHouse().getHost().getId().equals(currentHost.getId())){
+            throw new RuntimeException("");
         }
     }
 }
