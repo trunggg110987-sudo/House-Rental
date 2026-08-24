@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "bookings")
@@ -45,7 +44,9 @@ public class Booking {
         PENDING,   // Chờ chủ nhà duyệt
         APPROVED,  // Đã được chấp nhận
         REJECTED,  // Đã bị từ chối
-        CANCELLED  // Người thuê hủy
+        CANCELLED, // Người thuê hủy
+        CHECKED_IN, // Khách đã đến nhận phòng.
+        COMPLETED // Khách đã trả phòng thành công (Đơn hàng hoàn tất).
     }
 
     public String getStatusVietnamese() {
