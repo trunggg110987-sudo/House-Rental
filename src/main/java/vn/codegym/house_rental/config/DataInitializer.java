@@ -36,6 +36,19 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            userRepository.save(User.builder()
+                    .username("admin")
+                    .password(passwordEncoder.encode("123456"))
+                    .fullName("Administrator")
+                    .email("admin@house-rental.local")
+                    .role(User.Role.ROLE_ADMIN)
+                    .hostStatus(User.HostStatus.NONE)
+                    .active(true)
+                    .build());
+        }
+
         if (categoryRepository.count() > 0) {
             return;
         }
