@@ -39,14 +39,13 @@ public class Booking {
     @JoinColumn(name = "house_id", nullable = false)
     private House house;
 
-
     public enum BookingStatus {
         PENDING,   // Chờ chủ nhà duyệt
         APPROVED,  // Đã được chấp nhận
         REJECTED,  // Đã bị từ chối
         CANCELLED, // Người thuê hủy
         CHECKED_IN, // Khách đã đến nhận phòng.
-        COMPLETED // Khách đã trả phòng thành công (Đơn hàng hoàn tất).
+        CHECKED_OUT // Khách đã trả phòng thành công.
     }
 
     public String getStatusVietnamese() {

@@ -171,7 +171,36 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));
 
         if(!booking.getHouse().getHost().getId().equals(currentHost.getId())){
-            throw new RuntimeException("");
+            throw new RuntimeException("Bạn không có quyền thực hiện check-in cho căn nhà này.");
         }
+
+        if(!booking.getStatus().equals(Booking.BookingStatus.APPROVED)){
+            throw new IllegalStateException("Chỉ có thể check-in đối với những đơn đặt phòng đã được phê duyệt");
+        }
+
+        booking.getHouse().setStatus(House.HouseStatus.RENTED);
+        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        bookingRepository.save(booking);
+    }
+
+    public void checkOut(Long bookingId, User currentHost){
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));
+        if(!booking.getHouse().getHost().getId().equals(currentHost.getId())){
+            throw new RuntimeException("Bạn không có quyền thực hiện check-in cho căn nhà này.");
+        }
+
+        if(!booking.getStatus().equals(Booking.BookingStatus.CHECKED_IN)){
+            throw new IllegalStateException("Bạn chưa check in căn nhà này.");
+        }
+
+        booking.setStatus(Booking.BookingStatus.CHECKED_OUT);
+        booking.getHouse().setStatus(House.HouseStatus.AVAILABLE);
+        bookingRepository.save(booking);
+    }
+
+    public Page<Booking> searchHostBookings(User host, String houseName, LocalDate startDate, LocalDate endDate, Booking.BookingStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return bookingRepository.searchHostBookings(host, houseName, startDate, endDate, status, pageable);
     }
 }
