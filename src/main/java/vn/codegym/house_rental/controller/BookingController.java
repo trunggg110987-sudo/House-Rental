@@ -17,6 +17,9 @@ import java.util.List;
 
 import java.util.Optional;
 import java.time.LocalDate;
+import java.util.Map;
+import vn.codegym.house_rental.model.Review;
+import vn.codegym.house_rental.service.ReviewService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -32,6 +35,9 @@ public class BookingController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ReviewService reviewService;
 
     // Gửi yêu cầu đặt phòng (Renter)
     @PostMapping("/create")
@@ -212,5 +218,24 @@ public class BookingController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/bookings/host-bookings";
+    }
+
+    @GetMapping("/host-reviews")
+    public String hostReviews(HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        List<Review> reviews = reviewService.getReviewsByHost(currentUser.getId());
+        double avgRating = reviewService.getAverageRating(reviews);
+        Map<Integer, Integer> starDist = reviewService.getStarDistribution(reviews);
+
+        model.addAttribute("reviews", reviews);
+        model.addAttribute("averageRating", avgRating);
+        model.addAttribute("starDistribution", starDist);
+        model.addAttribute("totalReviews", reviews.size());
+
+        return "booking/host_reviews";
     }
 }

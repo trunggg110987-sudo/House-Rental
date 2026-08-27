@@ -30,12 +30,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b
             WHERE b.house.id = :houseId
-            AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            AND b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN
+            )
             AND (:startDate < b.endDate AND :endDate > b.startDate)
             """)
     boolean existsOverlappingBooking(@Param("houseId") Long houseId,
                                      @Param("startDate") java.time.LocalDate startDate,
                                      @Param("endDate") java.time.LocalDate endDate);
+
 
     @Query("""
             SELECT COALESCE(SUM(b.totalPrice),0)
@@ -92,6 +96,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                      @Param("endDate") java.time.LocalDate endDate,
                                      @Param("status") Booking.BookingStatus status,
                                      Pageable pageable);
+
+    
 }
 
 
