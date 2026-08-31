@@ -23,8 +23,8 @@ public interface HouseRepository extends JpaRepository<House, Long> {
     @Query("SELECT h FROM House h WHERE " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
-           "(:minPrice IS NULL OR h.pricePerMonth >= :minPrice) AND " +
-           "(:maxPrice IS NULL OR h.pricePerMonth <= :maxPrice)")
+           "(:minPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) <= :maxPrice)")
     Page<House> searchHouses(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
@@ -37,8 +37,8 @@ public interface HouseRepository extends JpaRepository<House, Long> {
            "h.status = vn.codegym.house_rental.model.House.HouseStatus.AVAILABLE AND " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
-           "(:minPrice IS NULL OR h.pricePerMonth >= :minPrice) AND " +
-           "(:maxPrice IS NULL OR h.pricePerMonth <= :maxPrice)")
+           "(:minPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) <= :maxPrice)")
     Page<House> searchAvailableHouses(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,

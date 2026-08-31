@@ -165,7 +165,12 @@ public class UserService {
             throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác");
         }
 
-        // [BỔ SUNG THEO YÊU CẦU TASK 4]: Mật khẩu mới không được trùng với mật khẩu cũ
+        // Kiểm tra khớp mật khẩu xác nhận
+        if (changePasswordDto.getNewPassword() != null && !changePasswordDto.getNewPassword().equals(changePasswordDto.getConfirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp với mật khẩu mới");
+        }
+
+        // Mật khẩu mới không được trùng với mật khẩu cũ
         if (changePasswordDto.getNewPassword().equals(changePasswordDto.getCurrentPassword())) {
             throw new IllegalArgumentException("Mật khẩu mới không được trùng với mật khẩu cũ");
         }
@@ -252,5 +257,13 @@ public class UserService {
 
         return houseRepository.findByHost(host);
 
+    }
+
+    public long countHostBookings(User host) {
+        return bookingRepository.countByHouse_Host(host);
+    }
+
+    public long countRenterBookings(User renter) {
+        return bookingRepository.countByRenter(renter);
     }
 }

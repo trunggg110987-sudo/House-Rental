@@ -40,9 +40,10 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h2 class="fw-bold text-dark mb-0" th:text="${house.name}">Tên nhà cho thuê</h2>
+                        <!-- Việt hóa Label Trạng Thái -->
                         <span class="badge fs-6 px-3 py-2 rounded-pill"
-                              th:classappend="'badge-status-' + ${house.status}"
-                              th:text="${house.status}">AVAILABLE</span>
+                              th:classappend="'badge-status-' + ${house.status.name()}"
+                              th:text="${house.getStatusVietnamese()}">Còn trống</span>
                     </div>
 
                     <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
@@ -67,8 +68,7 @@
 
                     <hr class="my-4">
 
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i> Thông Tin Đặc
-                        Điểm</h5>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i> Thông Tin Đặc Điểm</h5>
                     <div class="row g-3 text-center mb-4">
                         <div class="col-4">
                             <div class="p-3 bg-light rounded-3 border">
@@ -95,9 +95,9 @@
                         </div>
                     </div>
 
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-align-left text-primary me-2"></i> Mô Tả Chi Tiết
-                    </h5>
-                    <p class="text-secondary lh-lg" th:text="${house.description}">Nội dung mô tả nhà cho thuê...</p>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-align-left text-primary me-2"></i> Mô Tả Chi Tiết</h5>
+                    <!-- Render HTML Mô tả WYSIWYG -->
+                    <div class="text-secondary lh-lg" th:utext="${house.description}">Nội dung mô tả nhà cho thuê...</div>
                 </div>
             </div>
         </div>
@@ -106,12 +106,12 @@
         <div class="col-lg-4">
             <div class="card border-0 rounded-4 shadow-sm p-4 sticky-top" style="top: 90px;">
                 <div class="mb-3">
-                    <span class="text-muted small">Giá thuê từ:</span>
+                    <span class="text-muted small">Giá thuê theo ngày:</span>
                     <div class="d-flex align-items-baseline">
                         <h3 class="price-text mb-0 me-2"
-                            th:text="${#numbers.formatDecimal(house.pricePerMonth, 0, 'COMMA', 0, 'POINT')}">
-                            15,000,000</h3>
-                        <span class="text-muted">VNĐ / tháng</span>
+                            th:text="${#numbers.formatDecimal(house.getDisplayPricePerDay(), 0, 'COMMA', 0, 'POINT')}">
+                            850,000</h3>
+                        <span class="text-muted">VNĐ / ngày</span>
                     </div>
                 </div>
 
@@ -131,27 +131,31 @@
                     </div>
                 </div>
 
+                <!-- Cảnh báo nếu nhà đang Bảo trì -->
+                <div th:if="${house.status.name() == 'MAINTENANCE'}" class="alert alert-warning rounded-3 mb-4">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Căn nhà này hiện đang trong thời gian **Bảo trì**. Hiện không nhận đặt phòng.
+                </div>
+
                 <!-- Booking Form -->
                 <form th:action="@{/bookings/create}" method="post" th:object="${booking}">
                     <input type="hidden" name="houseId" th:value="${house.id}"/>
 
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold small text-secondary">Ngày bắt đầu thuê</label>
-                        <input type="date" name="startDate" class="form-control" required/>
+                        <input type="date" name="startDate" class="form-control" th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
                     </div>
 
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold small text-secondary">Ngày trả nhà</label>
-                        <input type="date" name="endDate" class="form-control" required/>
+                        <input type="date" name="endDate" class="form-control" th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
                     </div>
 
-                    <div class="alert alert-warning small border-0 mb-4">
-                        <i class="fa-solid fa-clock me-1"></i> Sau khi đặt phòng, Chủ nhà sẽ xem xét và **duyệt yêu
-                        cầu** của bạn.
+                    <div class="alert alert-info small border-0 mb-4">
+                        <i class="fa-solid fa-clock me-1"></i> Tổng tiền = Giá theo ngày × Số ngày thuê. Chủ nhà sẽ duyệt yêu cầu của bạn.
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold fs-6 shadow-sm"
-                            th:disabled="${house.status.name() != 'AVAILABLE'}">
+                            th:disabled="${house.status.name() == 'MAINTENANCE'}">
                         <i class="fa-solid fa-paper-plane me-2"></i> Gửi Yêu Cầu Thuê Nhà
                     </button>
                 </form>
