@@ -110,10 +110,7 @@ public class HouseService {
         if (!imagesToSave.isEmpty()) {
             houseImageRepository.saveAll(imagesToSave);
             // Cập nhật thumbnailUrl bằng ảnh đầu tiên nếu thumbnailUrl chưa được đặt hoặc dùng ảnh vừa upload
-            if (house.getThumbnailUrl() == null || house.getThumbnailUrl().trim().isEmpty() || house.getThumbnailUrl().contains("unsplash")) {
-                house.setThumbnailUrl(imagesToSave.get(0).getImageUrl());
-                houseRepository.save(house);
-            }
+
         }
     }
 

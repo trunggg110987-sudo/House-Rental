@@ -106,7 +106,13 @@
                     <span class="position-absolute top-0 start-0 m-2 badge bg-danger fs-6 rounded-circle shadow p-2"
                           style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;"
                           th:text="'#' + ${stat.count}">#1</span>
-                    <img th:src="${topHouse.thumbnailUrl}" class="house-card-img" style="height: 150px; object-fit: cover;" alt="Top house">
+                    <img th:src="${topHouse.thumbnailUrl != null && !#strings.isEmpty(topHouse.thumbnailUrl)
+                             ? topHouse.thumbnailUrl
+                             : '/images/house-placeholder.svg'}"
+                         class="house-card-img"
+                         style="height: 150px; object-fit: cover;"
+                         alt="Top house"
+                         onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
                     <div class="card-body p-3 d-flex flex-column">
                         <h6 class="card-title fw-bold text-truncate mb-1" th:text="${topHouse.name}">Tên nhà</h6>
                         <p class="card-text text-muted small text-truncate mb-2">
@@ -147,7 +153,12 @@
             <div class="col" th:each="house : ${houses}">
                 <div class="card house-card h-100 shadow-sm position-relative">
                     <!-- Thumbnail Image -->
-                    <img th:src="${house.thumbnailUrl}" class="house-card-img" alt="Thumbnail house">
+                    <img th:src="${house.thumbnailUrl != null && !#strings.isEmpty(house.thumbnailUrl)
+                             ? house.thumbnailUrl
+                             : '/images/house-placeholder.svg'}"
+                         class="house-card-img"
+                         alt="Thumbnail house"
+                         onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
 
                     <!-- Category Badge -->
                     <span class="position-absolute top-0 end-0 m-3 badge bg-dark opacity-75 px-3 py-2 rounded-pill"

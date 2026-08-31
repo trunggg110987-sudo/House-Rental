@@ -14,27 +14,39 @@
         <div class="col-lg-8">
             <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
                 <!-- Image Gallery Carousel if multiple images exist -->
-                <div th:if="${house.images != null and not #lists.isEmpty(house.images)}" id="houseImageCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div th:if="${house.images != null and not #lists.isEmpty(house.images)}" id="houseImageCarousel"
+                     class="carousel slide" data-bs-ride="carousel">
                     <div class="carousel-inner">
                         <div class="carousel-item active">
-                            <img th:src="${house.thumbnailUrl}" class="d-block w-100" style="max-height: 480px; object-fit: cover;" alt="Thumbnail">
+                            <img th:src="${house.thumbnailUrl}" class="d-block w-100"
+                                 style="max-height: 480px; object-fit: cover;" alt="Thumbnail">
                         </div>
-                        <div class="carousel-item" th:each="img : ${house.images}">
-                            <img th:src="${img.imageUrl}" class="d-block w-100" style="max-height: 480px; object-fit: cover;" alt="House Image">
+                        <div class="carousel-item"
+                             th:each="img : ${house.images}"
+                             th:if="${img.imageUrl != house.thumbnailUrl}">
+
+                            <img th:src="${img.imageUrl}"
+                                 class="d-block w-100"
+                                 style="max-height: 480px; object-fit: cover;"
+                                 alt="House Image"
+                                 onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
                         </div>
                     </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#houseImageCarousel" data-bs-slide="prev">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#houseImageCarousel"
+                            data-bs-slide="prev">
                         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Previous</span>
                     </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#houseImageCarousel" data-bs-slide="next">
+                    <button class="carousel-control-next" type="button" data-bs-target="#houseImageCarousel"
+                            data-bs-slide="next">
                         <span class="carousel-control-next-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Next</span>
                     </button>
                 </div>
                 <!-- Single Thumbnail Fallback -->
                 <div th:if="${house.images == null or #lists.isEmpty(house.images)}">
-                    <img th:src="${house.thumbnailUrl}" class="w-100" style="max-height: 480px; object-fit: cover;" alt="Thumbnail house detail">
+                    <img th:src="${house.thumbnailUrl}" class="w-100" style="max-height: 480px; object-fit: cover;"
+                         alt="Thumbnail house detail">
                 </div>
 
                 <div class="card-body p-4">
@@ -61,14 +73,32 @@
                     </div>
 
                     <!-- Album Ảnh Nhỏ (Thumbnails) -->
-                    <div th:if="${house.images != null and not #lists.isEmpty(house.images)}" class="d-flex gap-2 overflow-auto py-2 mb-3">
-                        <img th:src="${house.thumbnailUrl}" class="rounded border" style="width: 80px; height: 60px; object-fit: cover;" alt="thumb">
-                        <img th:each="img : ${house.images}" th:src="${img.imageUrl}" class="rounded border" style="width: 80px; height: 60px; object-fit: cover;" alt="thumb">
+                    <div th:if="${house.images != null and not #lists.isEmpty(house.images)}"
+                         class="d-flex gap-2 overflow-auto py-2 mb-3">
+
+                        <img th:src="${house.thumbnailUrl != null && !#strings.isEmpty(house.thumbnailUrl)
+                 ? house.thumbnailUrl
+                 : '/images/house-placeholder.svg'}"
+                             class="rounded border"
+                             style="width: 80px; height: 60px; object-fit: cover;"
+                             alt="thumb"
+                             onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
+
+                        <th:block th:each="img : ${house.images}">
+                            <img th:if="${img.imageUrl != house.thumbnailUrl}"
+                                 th:src="${img.imageUrl}"
+                                 class="rounded border"
+                                 style="width: 80px; height: 60px; object-fit: cover;"
+                                 alt="thumb"
+                                 onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
+                        </th:block>
+
                     </div>
 
                     <hr class="my-4">
 
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i> Thông Tin Đặc Điểm</h5>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i> Thông Tin Đặc
+                        Điểm</h5>
                     <div class="row g-3 text-center mb-4">
                         <div class="col-4">
                             <div class="p-3 bg-light rounded-3 border">
@@ -95,9 +125,11 @@
                         </div>
                     </div>
 
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-align-left text-primary me-2"></i> Mô Tả Chi Tiết</h5>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-align-left text-primary me-2"></i> Mô Tả Chi Tiết
+                    </h5>
                     <!-- Render HTML Mô tả WYSIWYG -->
-                    <div class="text-secondary lh-lg" th:utext="${house.description}">Nội dung mô tả nhà cho thuê...</div>
+                    <div class="text-secondary lh-lg" th:utext="${house.description}">Nội dung mô tả nhà cho thuê...
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,7 +165,8 @@
 
                 <!-- Cảnh báo nếu nhà đang Bảo trì -->
                 <div th:if="${house.status.name() == 'MAINTENANCE'}" class="alert alert-warning rounded-3 mb-4">
-                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Căn nhà này hiện đang trong thời gian **Bảo trì**. Hiện không nhận đặt phòng.
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Căn nhà này hiện đang trong thời gian **Bảo
+                    trì**. Hiện không nhận đặt phòng.
                 </div>
 
                 <!-- Booking Form -->
@@ -142,16 +175,19 @@
 
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold small text-secondary">Ngày bắt đầu thuê</label>
-                        <input type="date" name="startDate" class="form-control" th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
+                        <input type="date" name="startDate" class="form-control"
+                               th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
                     </div>
 
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold small text-secondary">Ngày trả nhà</label>
-                        <input type="date" name="endDate" class="form-control" th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
+                        <input type="date" name="endDate" class="form-control"
+                               th:disabled="${house.status.name() == 'MAINTENANCE'}" required/>
                     </div>
 
                     <div class="alert alert-info small border-0 mb-4">
-                        <i class="fa-solid fa-clock me-1"></i> Tổng tiền = Giá theo ngày × Số ngày thuê. Chủ nhà sẽ duyệt yêu cầu của bạn.
+                        <i class="fa-solid fa-clock me-1"></i> Tổng tiền = Giá theo ngày × Số ngày thuê. Chủ nhà sẽ
+                        duyệt yêu cầu của bạn.
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold fs-6 shadow-sm"

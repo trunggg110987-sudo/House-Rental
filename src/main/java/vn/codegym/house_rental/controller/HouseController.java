@@ -93,7 +93,7 @@ public class HouseController {
                 String uploadedUrl = fileStorageService.storeFile(imageFile);
                 house.setThumbnailUrl(uploadedUrl);
             } else if (house.getThumbnailUrl() == null || house.getThumbnailUrl().trim().isEmpty()) {
-                house.setThumbnailUrl("https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600");
+                house.setThumbnailUrl("/images/house-placeholder.svg");
             }
 
             if (house.getPricePerDay() == null && house.getPricePerMonth() != null) {

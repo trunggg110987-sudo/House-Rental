@@ -56,21 +56,31 @@
     <div th:if="${not #lists.isEmpty(houses)}" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         <div class="col" th:each="h : ${houses}">
             <div class="card house-card h-100 shadow-sm rounded-4 overflow-hidden border-0">
-                <img th:src="${h.thumbnailUrl}" class="house-card-img" style="height: 200px; object-fit: cover;" alt="House image">
+                <img th:src="${h.thumbnailUrl != null && !#strings.isEmpty(h.thumbnailUrl)
+                        ? h.thumbnailUrl
+                        : '/images/house-placeholder.svg'}"
+                     class="house-card-img"
+                     style="height: 200px; object-fit: cover;"
+                     alt="House image"
+                     onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
                 <div class="card-body d-flex flex-column p-4">
                     <h5 class="fw-bold text-truncate mb-1" th:text="${h.name}"></h5>
-                    <p class="text-muted small text-truncate mb-3"><i class="fa-solid fa-location-dot me-1 text-danger"></i> <span
+                    <p class="text-muted small text-truncate mb-3"><i
+                            class="fa-solid fa-location-dot me-1 text-danger"></i> <span
                             th:text="${h.address}"></span></p>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="price-text fs-5 fw-bold text-primary"
                               th:text="${#numbers.formatDecimal(h.getDisplayPricePerDay(), 0, 'COMMA', 0, 'POINT')} + ' VNĐ / ngày'"></span>
-                        <span class="badge px-3 py-2 rounded-pill fs-6" th:classappend="'badge-status-' + ${h.status.name()}" th:text="${h.getStatusVietnamese()}"></span>
+                        <span class="badge px-3 py-2 rounded-pill fs-6"
+                              th:classappend="'badge-status-' + ${h.status.name()}"
+                              th:text="${h.getStatusVietnamese()}"></span>
                     </div>
 
                     <!-- Hành động Chủ nhà (Task 28, 29, 30) -->
                     <div class="mt-auto pt-3 border-top d-flex flex-column gap-2">
                         <div class="d-flex gap-2">
-                            <a th:href="@{'/houses/' + ${h.id} + '/edit'}" class="btn btn-outline-warning btn-sm flex-fill rounded-pill fw-bold">
+                            <a th:href="@{'/houses/' + ${h.id} + '/edit'}"
+                               class="btn btn-outline-warning btn-sm flex-fill rounded-pill fw-bold">
                                 <i class="fa-solid fa-pen-to-square me-1"></i> Sửa Tin
                             </a>
                             <button type="button" class="btn btn-outline-info btn-sm flex-fill rounded-pill fw-bold"
@@ -103,7 +113,8 @@
                                 <p class="text-muted small mb-3">Căn nhà: <strong th:text="${h.name}"></strong></p>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Trạng Thái Áp Dụng <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-bold">Trạng Thái Áp Dụng <span
+                                            class="text-danger">*</span></label>
                                     <select name="status" class="form-select" required>
                                         <option value="AVAILABLE"> AVAILABLE (Còn trống / Cho thuê)</option>
                                         <option value="RENTED"> RENTED (Đã cho thuê)</option>
@@ -113,17 +124,21 @@
 
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Từ Ngày <span class="text-danger">*</span></label>
+                                        <label class="form-label fw-bold">Từ Ngày <span
+                                                class="text-danger">*</span></label>
                                         <input type="date" name="startDate" class="form-control" required/>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Đến Ngày <span class="text-danger">*</span></label>
+                                        <label class="form-label fw-bold">Đến Ngày <span
+                                                class="text-danger">*</span></label>
                                         <input type="date" name="endDate" class="form-control" required/>
                                     </div>
                                 </div>
                             </div>
                             <div class="modal-footer border-0 pt-0">
-                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">
+                                    Hủy
+                                </button>
                                 <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
                                     <i class="fa-solid fa-save me-1"></i> Lưu Trạng Thái
                                 </button>
