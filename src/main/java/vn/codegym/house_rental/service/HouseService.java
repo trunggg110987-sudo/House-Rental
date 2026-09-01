@@ -17,13 +17,11 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.codegym.house_rental.model.HouseImage;
 import vn.codegym.house_rental.model.HouseStatusPeriod;
 import vn.codegym.house_rental.repository.HouseImageRepository;
-import vn.codegym.house_rental.repository.HouseRepository;
 import vn.codegym.house_rental.repository.HouseStatusPeriodRepository;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -94,14 +92,18 @@ public class HouseService {
         }
 
         List<HouseImage> imagesToSave = new ArrayList<>();
+
         for (MultipartFile file : imageFiles) {
             if (file != null && !file.isEmpty()) {
+
                 String uploadedUrl = fileStorageService.storeFile(file);
+
                 if (uploadedUrl != null) {
                     HouseImage image = HouseImage.builder()
                             .imageUrl(uploadedUrl)
                             .house(house)
                             .build();
+
                     imagesToSave.add(image);
                 }
             }
@@ -109,8 +111,16 @@ public class HouseService {
 
         if (!imagesToSave.isEmpty()) {
             houseImageRepository.saveAll(imagesToSave);
-            // Cập nhật thumbnailUrl bằng ảnh đầu tiên nếu thumbnailUrl chưa được đặt hoặc dùng ảnh vừa upload
+        }
+    }
+    public void deleteHouseImage(Long imageId, House house) {
+        Optional<HouseImage> imageOptional =
+                houseImageRepository.findByIdAndHouse(imageId, house);
 
+        if (imageOptional.isPresent()) {
+            HouseImage image = imageOptional.get();
+
+            houseImageRepository.delete(image);
         }
     }
 

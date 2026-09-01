@@ -42,10 +42,12 @@ public class Booking {
 
 
     public enum BookingStatus {
-        PENDING,   // Chờ chủ nhà duyệt
-        APPROVED,  // Đã được chấp nhận
-        REJECTED,  // Đã bị từ chối
-        CANCELLED  // Người thuê hủy
+        PENDING,       // Chờ duyệt
+        APPROVED,      // Đã phê duyệt - chờ nhận phòng
+        CHECKED_IN,    // Đang ở
+        CHECKED_OUT,   // Đã trả phòng
+        REJECTED,      // Đã từ chối
+        CANCELLED      // Đã hủy
     }
 
     public String getStatusVietnamese() {

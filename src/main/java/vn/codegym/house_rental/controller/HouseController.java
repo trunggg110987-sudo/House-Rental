@@ -121,82 +121,237 @@ public class HouseController {
 
     // Form Chỉnh sửa nhà cho thuê dành cho Chủ nhà
     @GetMapping("/{id}/edit")
-    public String showEditForm(@PathVariable("id") Long id, HttpSession session, Model model) {
+    public String showEditForm(@PathVariable("id") Long id,
+                               HttpSession session,
+                               Model model) {
+
         User currentUser = (User) session.getAttribute("currentUser");
+
+        // Chưa đăng nhập
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
         Optional<House> houseOptional = houseService.findById(id);
 
+        // Không tìm thấy nhà
         if (houseOptional.isEmpty()) {
             return "redirect:/houses/my-houses";
         }
 
         House house = houseOptional.get();
-        if (!house.getHost().getId().equals(currentUser.getId())) {
+
+        // Nhà không có chủ hoặc không phải nhà của user hiện tại
+        if (house.getHost() == null ||
+                !house.getHost().getId().equals(currentUser.getId())) {
+
             return "redirect:/houses/my-houses";
         }
 
         model.addAttribute("house", house);
         model.addAttribute("categories", categoryService.findAll());
+
         return "house/form";
     }
 
     // Cập nhật thông tin nhà cho thuê kèm upload nhiều ảnh
     @PostMapping("/{id}/edit")
     public String updateHouse(@PathVariable("id") Long id,
-                             @Valid @ModelAttribute("house") House house,
-                             BindingResult bindingResult,
-                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
-                             @RequestParam(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
-                             HttpSession session,
-                             RedirectAttributes redirectAttributes,
-                             Model model) {
+                              @Valid @ModelAttribute("house") House house,
+                              BindingResult bindingResult,
+                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                              @RequestParam(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
+                              HttpSession session,
+                              RedirectAttributes redirectAttributes,
+                              Model model) {
 
+        // ==============================
+        // 1. KIỂM TRA ĐĂNG NHẬP
+        // ==============================
         User currentUser = (User) session.getAttribute("currentUser");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+
+        // ==============================
+        // 2. TÌM NHÀ CẦN CẬP NHẬT
+        // ==============================
         Optional<House> existingHouseOpt = houseService.findById(id);
 
-        if (existingHouseOpt.isEmpty() || !existingHouseOpt.get().getHost().getId().equals(currentUser.getId())) {
+        if (existingHouseOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Không tìm thấy bài đăng."
+            );
+
             return "redirect:/houses/my-houses";
         }
 
+
+        House existingHouse = existingHouseOpt.get();
+
+
+        // ==============================
+        // 3. KIỂM TRA QUYỀN SỞ HỮU
+        // ==============================
+        if (existingHouse.getHost() == null ||
+                !existingHouse.getHost().getId().equals(currentUser.getId())) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Bạn không có quyền chỉnh sửa bài đăng này."
+            );
+
+            return "redirect:/houses/my-houses";
+        }
+
+
+        // ==============================
+        // 4. KIỂM TRA VALIDATION
+        // ==============================
         if (bindingResult.hasErrors()) {
+
             model.addAttribute("categories", categoryService.findAll());
+
+            // Quan trọng:
+            // Khi validation lỗi, phải lấy lại ảnh hiện tại
+            // từ existingHouse thay vì dùng house từ form.
+
+            model.addAttribute("house", existingHouse);
+
             return "house/form";
         }
 
-        House existingHouse = existingHouseOpt.get();
+
+        // ==============================
+        // 5. CẬP NHẬT THÔNG TIN CƠ BẢN
+        // ==============================
         existingHouse.setName(house.getName());
         existingHouse.setAddress(house.getAddress());
         existingHouse.setPricePerDay(house.getPricePerDay());
-        if (house.getPricePerMonth() != null) {
-            existingHouse.setPricePerMonth(house.getPricePerMonth());
-        } else if (house.getPricePerDay() != null) {
-            existingHouse.setPricePerMonth(house.getPricePerDay() * 30.0);
-        }
         existingHouse.setNumberOfBedrooms(house.getNumberOfBedrooms());
         existingHouse.setNumberOfBathrooms(house.getNumberOfBathrooms());
         existingHouse.setDescription(house.getDescription());
-        existingHouse.setCategory(house.getCategory());
-        existingHouse.setStatus(house.getStatus());
+        existingHouse.setCategory(categoryService.findById(house.getCategory().getId()).orElse(null));
 
-        try {
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String uploadedUrl = fileStorageService.storeFile(imageFile);
+
+        // ==============================
+        // 6. THUMBNAIL
+        // ==============================
+        if (imageFile != null && !imageFile.isEmpty()) {
+
+            String uploadedUrl =
+                    fileStorageService.storeFile(imageFile);
+
+            if (uploadedUrl != null && !uploadedUrl.isBlank()) {
                 existingHouse.setThumbnailUrl(uploadedUrl);
             }
+        }
 
-            houseService.save(existingHouse);
 
-            // Lưu danh sách ảnh phụ mới tải lên với try-catch
+        // ==============================
+        // 7. LƯU THÔNG TIN HOUSE
+        // ==============================
+        try {
+
+            House savedHouse = houseService.save(existingHouse);
+
+
+            // ==============================
+            // 8. THÊM ẢNH CHI TIẾT
+            // ==============================
             if (imageFiles != null && !imageFiles.isEmpty()) {
-                houseService.saveHouseImages(existingHouse, imageFiles);
+
+                houseService.saveHouseImages(
+                        savedHouse,
+                        imageFiles
+                );
             }
+
+
         } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("categories", categoryService.findAll());
+
+            model.addAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
+
+            model.addAttribute(
+                    "categories",
+                    categoryService.findAll()
+            );
+
+            model.addAttribute(
+                    "house",
+                    existingHouse
+            );
+
             return "house/form";
         }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Cập nhật thông tin nhà thành công!");
+
+        // ==============================
+        // 9. THÔNG BÁO THÀNH CÔNG
+        // ==============================
+        redirectAttributes.addFlashAttribute(
+                "successMessage",
+                "Cập nhật thông tin nhà thành công!"
+        );
+
         return "redirect:/houses/my-houses";
+    }
+    // Xóa một ảnh chi tiết của nhà
+    @PostMapping("/{houseId}/images/{imageId}/delete")
+    public String deleteHouseImage(@PathVariable("houseId") Long houseId,
+                                   @PathVariable("imageId") Long imageId,
+                                   HttpSession session,
+                                   RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Optional<House> houseOptional = houseService.findById(houseId);
+
+        if (houseOptional.isEmpty()) {
+            return "redirect:/houses/my-houses";
+        }
+
+        House house = houseOptional.get();
+
+        // Kiểm tra nhà có thuộc chủ nhà đang đăng nhập không
+        if (house.getHost() == null ||
+                !house.getHost().getId().equals(currentUser.getId())) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Bạn không có quyền xóa ảnh của căn nhà này."
+            );
+
+            return "redirect:/houses/my-houses";
+        }
+
+        try {
+            houseService.deleteHouseImage(imageId, house);
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Đã xóa ảnh chi tiết thành công."
+            );
+
+        } catch (Exception e) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    "Không thể xóa ảnh."
+            );
+        }
+
+        return "redirect:/houses/" + houseId + "/edit";
     }
 
     // Endpoint cập nhật trạng thái nhà theo giai đoạn thời gian (Task 29)

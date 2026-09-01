@@ -75,45 +75,31 @@
 
                         </label>
 
-                        <select name="status"
-                                class="form-select">
+                        <select name="status" class="form-select">
 
-                            <option value="">
-
+                            <option value=""
+                                    th:selected="${status == null}">
                                 Tất cả
-
                             </option>
 
+                            <option value="PENDING"
+                                    th:selected="${status != null and status.name() == 'PENDING'}">
+                                Chờ duyệt
+                            </option>
 
                             <option value="APPROVED"
                                     th:selected="${status != null and status.name() == 'APPROVED'}">
-
-                                Chờ nhận phòng
-
+                                Đã phê duyệt
                             </option>
 
-
-                            <option value="CHECKED_IN"
-                                    th:selected="${status != null and status.name() == 'CHECKED_IN'}">
-
-                                Đang ở
-
+                            <option value="REJECTED"
+                                    th:selected="${status != null and status.name() == 'REJECTED'}">
+                                Đã từ chối
                             </option>
-
-
-                            <option value="CHECKED_OUT"
-                                    th:selected="${status != null and status.name() == 'CHECKED_OUT'}">
-
-                                Đã trả phòng
-
-                            </option>
-
 
                             <option value="CANCELLED"
                                     th:selected="${status != null and status.name() == 'CANCELLED'}">
-
                                 Đã hủy
-
                             </option>
 
                         </select>

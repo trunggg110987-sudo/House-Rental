@@ -10,7 +10,11 @@
             <span th:text="${house.id == null ? 'Đăng Tin Cho Thuê Nhà Mới' : 'Chỉnh Sửa Thông Tin Nhà'}">Đăng Tin Cho Thuê Nhà Mới</span>
         </h3>
 
-        <form th:action="${house.id == null ? '/houses/create' : '/houses/' + house.id + '/edit'}" method="post" enctype="multipart/form-data" th:object="${house}">
+        <form id="houseEditForm"
+              th:action="${house.id == null} ? @{/houses/create} : @{/houses/{id}/edit(id=${house.id})}"
+              method="post"
+              enctype="multipart/form-data"
+              th:object="${house}">
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Tên Nhà / Căn Hộ <span class="text-danger">*</span></label>
@@ -54,18 +58,133 @@
                 </div>
             </div>
 
-            <!-- Image Thumbnail & Multiple File Upload -->
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Ảnh Đại Diện (Thumbnail) <i class="fa-solid fa-image text-primary me-1"></i></label>
-                    <input type="file" name="imageFile" class="form-control" accept="image/*"/>
-                    <div class="form-text">Ảnh đại diện chính của căn nhà.</div>
+            <!-- IMAGE MANAGEMENT -->
+            <div class="mb-4">
+
+                <div class="row g-4">
+
+                    <!-- THUMBNAIL -->
+                    <div class="col-md-6">
+
+                        <label class="form-label fw-bold">
+                            <i class="fa-solid fa-image text-primary me-1"></i>
+                            Ảnh Đại Diện (Thumbnail)
+                        </label>
+
+                        <div th:if="${house.id != null
+                         and house.thumbnailUrl != null
+                         and !#strings.isEmpty(house.thumbnailUrl)}"
+                             class="mb-3">
+
+                            <p class="text-muted small mb-2">
+                                Thumbnail hiện tại:
+                            </p>
+
+                            <div class="border rounded-3 overflow-hidden bg-light">
+
+                                <img th:src="${house.thumbnailUrl}"
+                                     class="w-100"
+                                     style="height: 200px; object-fit: cover;"
+                                     alt="Thumbnail hiện tại"
+                                     onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
+
+                            </div>
+
+                        </div>
+
+                        <input type="file"
+                               name="imageFile"
+                               class="form-control"
+                               accept="image/*">
+
+                        <div class="form-text">
+                            Chọn ảnh mới để thay thế thumbnail hiện tại.
+                            Nếu không chọn, thumbnail cũ được giữ nguyên.
+                        </div>
+
+                    </div>
+
+
+                    <!-- ẢNH CHI TIẾT -->
+                    <div class="col-md-6">
+
+                        <label class="form-label fw-bold">
+                            <i class="fa-solid fa-images text-success me-1"></i>
+                            Thêm Ảnh Chi Tiết
+                        </label>
+
+                        <input type="file"
+                               name="imageFiles"
+                               class="form-control"
+                               accept="image/*"
+                               multiple>
+
+                        <div class="form-text">
+                            Có thể chọn nhiều ảnh.
+                            Ảnh mới sẽ được thêm vào album hiện tại.
+                        </div>
+
+                    </div>
+
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Đăng Nhiều Ảnh Chi Tiết <i class="fa-solid fa-images text-success me-1"></i></label>
-                    <input type="file" name="imageFiles" class="form-control" accept="image/*" multiple/>
-                    <div class="form-text">Bạn có thể chọn nhiều ảnh cùng lúc để đăng lên album nhà.</div>
+
+
+                <!-- ALBUM -->
+                <div th:if="${house.id != null
+                 and house.images != null
+                 and !#lists.isEmpty(house.images)}"
+                     class="mt-4">
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+
+                        <h6 class="fw-bold mb-0">
+                            <i class="fa-solid fa-photo-film text-success me-1"></i>
+                            Ảnh Chi Tiết Hiện Tại
+                        </h6>
+
+                        <span class="badge bg-light text-dark border"
+                              th:text="${#lists.size(house.images) + ' ảnh'}">
+                0 ảnh
+            </span>
+
+                    </div>
+
+                    <div class="row g-3">
+
+                        <div class="col-6 col-md-4 col-lg-3"
+                             th:each="image : ${house.images}">
+
+                            <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100">
+
+                                <img th:src="${image.imageUrl}"
+                                     class="w-100"
+                                     style="height: 150px; object-fit: cover;"
+                                     alt="Ảnh chi tiết"
+                                     onerror="this.onerror=null; this.src='/images/house-placeholder.svg';">
+
+                                <div class="p-2">
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger w-100"
+                                            th:attr="data-house-id=${house.id},
+                                         data-image-id=${image.id}"
+                                            onclick="deleteHouseImage(this)">
+
+                                        <i class="fa-solid fa-trash me-1"></i>
+                                        Xóa ảnh
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
             </div>
 
             <div class="mb-4">
@@ -77,12 +196,49 @@
             <div class="d-flex justify-content-end gap-2">
                 <a th:href="@{/}" class="btn btn-light border rounded-pill px-4">Hủy Bỏ</a>
                 <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
-                    <i class="fa-solid fa-check me-1"></i> Đăng Tin Ngay
+                    <i class="fa-solid fa-check me-1"></i>
+                    <span th:text="${house.id == null ? 'Đăng Tin Ngay' : 'Lưu Thay Đổi'}">
+                        Đăng Tin Ngay
+                    </span>
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<script>
+    function deleteHouseImage(button) {
+
+        const houseId = button.getAttribute('data-house-id');
+        const imageId = button.getAttribute('data-image-id');
+
+        if (!confirm('Bạn có chắc muốn xóa ảnh này không?')) {
+            return;
+        }
+
+        const formData = new FormData();
+
+        fetch(`/houses/${houseId}/images/${imageId}/delete`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+
+            if (response.ok || response.redirected) {
+                window.location.reload();
+            } else {
+                alert('Không thể xóa ảnh. Vui lòng thử lại.');
+            }
+
+        })
+        .catch(error => {
+
+            console.error('Delete image error:', error);
+
+            alert('Có lỗi xảy ra khi xóa ảnh.');
+
+        });
+    }
+</script>
 </body>
 </html>

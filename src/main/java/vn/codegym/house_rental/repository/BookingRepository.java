@@ -52,4 +52,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
             """)
     Double getTotalSpent(@Param("renter") User renter);
+
+    @EntityGraph(attributePaths = {"house", "renter"})
+    @Query("""
+        SELECT b
+        FROM Booking b
+        WHERE b.house.host = :host
+        AND (:houseName IS NULL OR LOWER(b.house.name) LIKE LOWER(CONCAT('%', :houseName, '%')))
+        AND (:startDate IS NULL OR b.endDate >= :startDate)
+        AND (:endDate IS NULL OR b.startDate <= :endDate)
+        AND (:status IS NULL OR b.status = :status)
+        """)
+    Page<Booking> searchHostBookings(
+            @Param("host") User host,
+            @Param("houseName") String houseName,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("status") Booking.BookingStatus status,
+            Pageable pageable
+    );
 }

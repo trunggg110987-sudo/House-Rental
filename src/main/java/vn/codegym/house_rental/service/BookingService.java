@@ -12,6 +12,7 @@ import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
 
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -34,6 +35,41 @@ public class BookingService {
         return bookingRepository.findByHouse_Host(host, pageable);
     }
 
+    public Page<Booking> searchHostBookings(
+            User host,
+            String houseName,
+            LocalDate startDate,
+            LocalDate endDate,
+            Booking.BookingStatus status,
+            int page,
+            int size) {
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("id").descending()
+        );
+
+        String keyword = houseName;
+
+        if (keyword != null && keyword.trim().isEmpty()) {
+            keyword = null;
+        }
+
+        if (keyword != null) {
+            keyword = keyword.trim();
+        }
+
+        return bookingRepository.searchHostBookings(
+                host,
+                keyword,
+                startDate,
+                endDate,
+                status,
+                pageable
+        );
+    }
+
     public Optional<Booking> findById(Long id) {
         return bookingRepository.findById(id);
     }
@@ -48,6 +84,16 @@ public class BookingService {
         }
         if (!booking.getEndDate().isAfter(booking.getStartDate())) {
             throw new IllegalArgumentException("Ngày kết thúc thuê phải sau ngày bắt đầu thuê.");
+        }
+
+        // Host không được thuê căn nhà do chính mình đăng
+        if (house.getHost() != null
+                && renter != null
+                && house.getHost().getId().equals(renter.getId())) {
+
+            throw new IllegalArgumentException(
+                    "Chủ nhà không thể thuê chính căn nhà do mình đăng."
+            );
         }
 
         // Kiểm tra căn nhà có đang ở trạng thái bảo trì không

@@ -99,6 +99,64 @@ public class BookingController {
         return "booking/host_requests";
     }
 
+    // Lịch đặt thuê của Chủ nhà
+    @GetMapping("/host-bookings")
+    public String hostBookings(
+            @RequestParam(name = "houseName", required = false) String houseName,
+            @RequestParam(name = "startDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
+            ) java.time.LocalDate startDate,
+            @RequestParam(name = "endDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
+            ) java.time.LocalDate endDate,
+            @RequestParam(name = "status", required = false) Booking.BookingStatus status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "5") int size,
+            HttpSession session,
+            Model model) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        // Nếu nhập sai khoảng ngày
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            model.addAttribute("errorMessage",
+                    "Ngày kết thúc không được trước ngày bắt đầu.");
+
+            startDate = null;
+            endDate = null;
+        }
+
+        // Tránh page âm
+        if (page < 0) {
+            page = 0;
+        }
+
+        Page<Booking> bookingPage = bookingService.searchHostBookings(
+                currentUser,
+                houseName,
+                startDate,
+                endDate,
+                status,
+                page,
+                size
+        );
+
+        model.addAttribute("bookingPage", bookingPage);
+
+        model.addAttribute("houseName", houseName);
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
+        model.addAttribute("status", status);
+
+        return "booking/host_bookings";
+    }
+
     // Chủ nhà Phê duyệt yêu cầu (PENDING -> APPROVED)
     @PostMapping("/{id}/approve")
     public String approveBooking(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
@@ -131,4 +189,59 @@ public class BookingController {
         }
         return "redirect:/bookings/my-bookings";
     }
+    @PostMapping("/{id}/checkin")
+    public String checkinBooking(@PathVariable("id") Long id,
+                                 HttpSession session,
+                                 RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            bookingService.updateStatus(id, Booking.BookingStatus.CHECKED_IN);
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Đã xác nhận khách nhận phòng."
+            );
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
+        }
+
+        return "redirect:/bookings/host-bookings";
+    }
+
+
+    @PostMapping("/{id}/checkout")
+    public String checkoutBooking(@PathVariable("id") Long id,
+                                  HttpSession session,
+                                  RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            bookingService.updateStatus(id, Booking.BookingStatus.CHECKED_OUT);
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Đã xác nhận khách trả phòng."
+            );
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
+        }
+
+        return "redirect:/bookings/host-bookings";
+    }
+    
 }
