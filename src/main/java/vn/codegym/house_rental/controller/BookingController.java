@@ -6,14 +6,20 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.codegym.house_rental.dto.MonthlyIncomeDTO;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.service.BookingService;
 import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
+import java.util.List;
 
 import java.util.Optional;
+import java.time.LocalDate;
+import java.util.Map;
+import vn.codegym.house_rental.model.Review;
+import vn.codegym.house_rental.service.ReviewService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -29,6 +35,9 @@ public class BookingController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ReviewService reviewService;
 
     // Gửi yêu cầu đặt phòng (Renter)
     @PostMapping("/create")
@@ -130,5 +139,103 @@ public class BookingController {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
         }
         return "redirect:/bookings/my-bookings";
+    }
+
+    @GetMapping("/income-statistics")
+    public String index(@RequestParam(name = "year", required = false) Integer year, HttpSession session, Model model){
+        User currentUser = (User) session.getAttribute("currentUser");
+        if(currentUser == null){
+            return "redirect:/login";
+        }
+
+        if(year == null){
+            year = LocalDate.now().getYear();
+        }
+
+        List<MonthlyIncomeDTO> dto = bookingService.getReviewMonthlyIncome(currentUser.getId(), year);
+        model.addAttribute("monthlyIncomes", dto);
+        model.addAttribute("selectedYear" , year);
+
+        return "booking/income_statistics";
+    }
+
+    @GetMapping("/host-bookings")
+    public String hostBookings(@RequestParam(name = "houseName", required = false) String houseName,
+                               @RequestParam(name = "startDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+                               @RequestParam(name = "endDate", required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate,
+                               @RequestParam(name = "status", required = false) Booking.BookingStatus status,
+                               @RequestParam(name = "page", defaultValue = "0") int page,
+                               @RequestParam(name = "size", defaultValue = "5") int size,
+                               HttpSession session,
+                               Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Page<Booking> bookingPage = bookingService.searchHostBookings(
+                currentUser, houseName, startDate, endDate, status, page, size
+        );
+
+        model.addAttribute("bookingPage", bookingPage);
+        model.addAttribute("houseName", houseName);
+        model.addAttribute("startDate", startDate);
+        model.addAttribute("endDate", endDate);
+        model.addAttribute("status", status);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", bookingPage.getTotalPages());
+
+        return "booking/host_bookings";
+    }
+
+    @PostMapping("/{bookingId}/checkin")
+    public String checkIn(@PathVariable("bookingId") Long bookingId, HttpSession session, RedirectAttributes redirectAttributes){
+        User currentUser = (User) session.getAttribute("currentUser");
+        if(currentUser == null){
+            return "redirect:/login";
+        }
+
+        try {
+            bookingService.checkIn(bookingId, currentUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Check in thành công");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/bookings/host-bookings";
+    }
+
+    @PostMapping("/{bookingId}/checkout")
+    public String checkOut(@PathVariable("bookingId") Long bookingId, HttpSession session, RedirectAttributes redirectAttributes){
+        User currentUser = (User) session.getAttribute("currentUser");
+        if(currentUser == null){
+            return "redirect:/login";
+        }
+
+        try {
+            bookingService.checkOut(bookingId, currentUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Check out thành công");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/bookings/host-bookings";
+    }
+
+    @GetMapping("/host-reviews")
+    public String hostReviews(HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        List<Review> reviews = reviewService.getReviewsByHost(currentUser.getId());
+        double avgRating = reviewService.getAverageRating(reviews);
+        Map<Integer, Integer> starDist = reviewService.getStarDistribution(reviews);
+
+        model.addAttribute("reviews", reviews);
+        model.addAttribute("averageRating", avgRating);
+        model.addAttribute("starDistribution", starDist);
+        model.addAttribute("totalReviews", reviews.size());
+
+        return "booking/host_reviews";
     }
 }

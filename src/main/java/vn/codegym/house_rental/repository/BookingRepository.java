@@ -30,18 +30,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b
             WHERE b.house.id = :houseId
-            AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            AND b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN
+            )
             AND (:startDate < b.endDate AND :endDate > b.startDate)
             """)
     boolean existsOverlappingBooking(@Param("houseId") Long houseId,
                                      @Param("startDate") java.time.LocalDate startDate,
                                      @Param("endDate") java.time.LocalDate endDate);
 
+
     @Query("""
             SELECT COALESCE(SUM(b.totalPrice),0)
             FROM Booking b
             WHERE b.house.host = :host
-            AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            AND b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_OUT
+            )
             """)
     Double getRevenue(@Param("host") User host);
 
@@ -49,7 +57,47 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             SELECT COALESCE(SUM(b.totalPrice),0)
             FROM Booking b
             WHERE b.renter = :renter
-            AND b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            AND b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_OUT
+            )
             """)
     Double getTotalSpent(@Param("renter") User renter);
+
+    @Query("""
+            SELECT new vn.codegym.house_rental.dto.MonthlyIncomeDTO(
+                MONTH(b.endDate),
+                COALESCE(SUM(b.totalPrice), 0.0)
+            )
+            FROM Booking b
+            WHERE b.house.host.id = :hostId
+            AND b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_OUT
+            )
+            AND YEAR(b.endDate) = :year
+            GROUP BY MONTH(b.endDate)
+            """)
+    List<vn.codegym.house_rental.dto.MonthlyIncomeDTO> getMonthlyIncomeByHostAndYear(@Param("hostId") Long hostId, @Param("year") int year);
+
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.house.host = :host
+            AND (:houseName IS NULL OR :houseName = '' OR LOWER(b.house.name) LIKE LOWER(CONCAT('%', :houseName, '%')))
+            AND (:startDate IS NULL OR b.startDate >= :startDate)
+            AND (:endDate IS NULL OR b.endDate <= :endDate)
+            AND (:status IS NULL OR b.status = :status)
+            """)
+    Page<Booking> searchHostBookings(@Param("host") User host,
+                                     @Param("houseName") String houseName,
+                                     @Param("startDate") java.time.LocalDate startDate,
+                                     @Param("endDate") java.time.LocalDate endDate,
+                                     @Param("status") Booking.BookingStatus status,
+                                     Pageable pageable);
+
+    
 }
+
+

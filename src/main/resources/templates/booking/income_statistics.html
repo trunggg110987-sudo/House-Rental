@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Thống kê thu nhập theo tháng', ~{::div.main-content})}">
+<body>
+
+<div class="main-content container py-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6 col-12">
+            <h3 class="fw-bold text-primary mb-1">
+                <i class="fa-solid fa-chart-line me-2"></i> Thống Kê Thu Nhập
+            </h3>
+            <p class="text-muted mb-0">Theo dõi doanh thu phòng cho thuê của bạn</p>
+        </div>
+        <!-- Bộ lọc chọn năm -->
+        <div class="col-md-6 col-12 mt-3 mt-md-0 d-flex justify-content-md-end">
+            <form th:action="@{/bookings/income-statistics}" method="get" class="d-flex align-items-center gap-2 bg-white p-2 rounded-4 shadow-sm">
+                <span class="text-secondary small fw-bold ps-2">Chọn Năm:</span>
+                <select name="year" class="form-select border-0 bg-light rounded-pill fw-bold text-primary" onchange="this.form.submit()" style="width: 120px;">
+                    <option th:each="y : ${#numbers.sequence(T(java.time.LocalDate).now().getYear() - 5, T(java.time.LocalDate).now().getYear() + 1)}"
+                            th:value="${y}"
+                            th:text="${y}"
+                            th:selected="${y == selectedYear}">
+                    </option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hàng thống kê tổng quát -->
+    <div class="row mb-4">
+        <div class="col-md-4 col-12 mb-3 mb-md-0">
+            <div class="card border-0 rounded-4 shadow-sm p-4 bg-gradient text-white"
+                 style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-white-50 fw-bold text-uppercase mb-2">Tổng thu nhập năm <span th:text="${selectedYear}"></span></h6>
+                        <h3 class="fw-bold mb-0"
+                            th:with="totalIncome=${#aggregates.sum(monthlyIncomes.![income])}"
+                            th:text="${#numbers.formatDecimal(totalIncome != null ? totalIncome : 0, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">
+                        </h3>
+                    </div>
+                    <div class="fs-1 text-white-50">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng chi tiết doanh thu theo tháng -->
+    <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
+        <div class="card-header bg-white border-0 py-3">
+            <h5 class="fw-bold text-dark mb-0">Doanh Thu Chi Tiết Từng Tháng</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-4" style="width: 150px;">Tháng</th>
+                    <th>Trạng Thái Hoạt Động</th>
+                    <th class="text-end pe-4">Thu Nhập Thực Tế (VNĐ)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${monthlyIncomes}">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary-subtle text-primary rounded-3 px-3 py-2 fw-bold"
+                                  th:text="'Tháng ' + ${item.month}">
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <span th:if="${item.income > 0}" class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
+                            <i class="fa-solid fa-circle-check me-1"></i> Có phát sinh doanh thu
+                        </span>
+                        <span th:if="${item.income == 0}" class="badge bg-light text-muted px-3 py-2 rounded-pill border">
+                            <i class="fa-solid fa-circle-minus me-1"></i> Không có doanh thu
+                        </span>
+                    </td>
+                    <td class="text-end fw-bold text-dark pe-4"
+                        th:text="${#numbers.formatDecimal(item.income, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
