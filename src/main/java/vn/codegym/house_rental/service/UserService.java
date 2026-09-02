@@ -125,7 +125,31 @@ public class UserService {
                         )
                 );
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        String storedPassword = user.getPassword();
+
+        boolean passwordValid;
+
+        // Password đã được mã hóa BCrypt
+        if (storedPassword != null &&
+                (storedPassword.startsWith("$2a$") ||
+                        storedPassword.startsWith("$2b$") ||
+                        storedPassword.startsWith("$2y$"))) {
+
+            passwordValid = passwordEncoder.matches(password, storedPassword);
+
+        } else {
+            // Password cũ đang lưu dạng plain text
+            passwordValid = password.equals(storedPassword);
+
+            // Nếu đăng nhập đúng bằng password cũ,
+            // tự động chuyển sang BCrypt
+            if (passwordValid) {
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
+            }
+        }
+
+        if (!passwordValid) {
             throw new IllegalArgumentException(
                     "Tên đăng nhập hoặc mật khẩu không chính xác"
             );

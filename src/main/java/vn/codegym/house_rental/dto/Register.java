@@ -16,8 +16,8 @@ public class Register {
     // [BỔ SUNG THEO YÊU CẦU TASK 7]: Validate mật khẩu từ 6-32 ký tự
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, max = 32, message = "Mật khẩu phải từ 6 đến 32 ký tự")
+    @Pattern(regexp = "^\\S+$", message = "Mật khẩu không được chứa khoảng trắng")
     private String password;
-
     @NotBlank(message = "Xác nhận mật khẩu không được để trống")
     private String confirmPassword;
 
