@@ -2,6 +2,7 @@ package vn.codegym.house_rental.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.Category;
@@ -30,9 +31,24 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private BookingRepository bookingRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
+
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            userRepository.save(User.builder()
+                    .username("admin")
+                    .password(passwordEncoder.encode("123456"))
+                    .fullName("Administrator")
+                    .email("admin@house-rental.local")
+                    .role(User.Role.ROLE_ADMIN)
+                    .hostStatus(User.HostStatus.NONE)
+                    .active(true)
+                    .build());
+        }
+
         if (categoryRepository.count() > 0) {
             return;
         }
@@ -44,9 +60,9 @@ public class DataInitializer implements CommandLineRunner {
         Category catRoom = categoryRepository.save(Category.builder().name("Phòng trọ sinh viên").description("Phòng trọ tiện nghi, giá rẻ cạnh trường đại học").build());
 
         // 2. Seed Users
-        User host1 = userRepository.save(User.builder().username("host1").password("123456").fullName("Nguyen Van Nam").email("nam@gmail.com").phone("0905123456").role(User.Role.ROLE_HOST).build());
-        User host2 = userRepository.save(User.builder().username("host2").password("123456").fullName("Tran Thi Huong").email("huong@gmail.com").phone("0914987654").role(User.Role.ROLE_HOST).build());
-        User user1 = userRepository.save(User.builder().username("user1").password("123456").fullName("Le Van Tuan").email("tuan@gmail.com").phone("0935111222").role(User.Role.ROLE_USER).build());
+        User host1 = userRepository.save(User.builder().username("host1").password(passwordEncoder.encode("123456")).fullName("Nguyen Van Nam").email("nam@gmail.com").phone("0905123456").role(User.Role.ROLE_HOST).build());
+        User host2 = userRepository.save(User.builder().username("host2").password(passwordEncoder.encode("123456")).fullName("Tran Thi Huong").email("huong@gmail.com").phone("0914987654").role(User.Role.ROLE_HOST).build());
+        User user1 = userRepository.save(User.builder().username("user1").password(passwordEncoder.encode("123456")).fullName("Le Van Tuan").email("tuan@gmail.com").phone("0935111222").role(User.Role.ROLE_USER).build());
 
         // 3. Seed Sample Houses
         List<House> houses = Arrays.asList(

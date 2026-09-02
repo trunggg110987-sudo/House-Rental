@@ -165,9 +165,9 @@ public class HouseController {
                               RedirectAttributes redirectAttributes,
                               Model model) {
 
-        // ==============================
+
         // 1. KIỂM TRA ĐĂNG NHẬP
-        // ==============================
+
         User currentUser = (User) session.getAttribute("currentUser");
 
         if (currentUser == null) {
@@ -175,9 +175,9 @@ public class HouseController {
         }
 
 
-        // ==============================
+
         // 2. TÌM NHÀ CẦN CẬP NHẬT
-        // ==============================
+
         Optional<House> existingHouseOpt = houseService.findById(id);
 
         if (existingHouseOpt.isEmpty()) {
@@ -193,9 +193,9 @@ public class HouseController {
         House existingHouse = existingHouseOpt.get();
 
 
-        // ==============================
+
         // 3. KIỂM TRA QUYỀN SỞ HỮU
-        // ==============================
+
         if (existingHouse.getHost() == null ||
                 !existingHouse.getHost().getId().equals(currentUser.getId())) {
 
@@ -208,9 +208,9 @@ public class HouseController {
         }
 
 
-        // ==============================
+
         // 4. KIỂM TRA VALIDATION
-        // ==============================
+
         if (bindingResult.hasErrors()) {
 
             model.addAttribute("categories", categoryService.findAll());
@@ -225,9 +225,9 @@ public class HouseController {
         }
 
 
-        // ==============================
+
         // 5. CẬP NHẬT THÔNG TIN CƠ BẢN
-        // ==============================
+
         existingHouse.setName(house.getName());
         existingHouse.setAddress(house.getAddress());
         existingHouse.setPricePerDay(house.getPricePerDay());
@@ -237,9 +237,9 @@ public class HouseController {
         existingHouse.setCategory(categoryService.findById(house.getCategory().getId()).orElse(null));
 
 
-        // ==============================
+
         // 6. THUMBNAIL
-        // ==============================
+
         if (imageFile != null && !imageFile.isEmpty()) {
 
             String uploadedUrl =
@@ -251,17 +251,17 @@ public class HouseController {
         }
 
 
-        // ==============================
+
         // 7. LƯU THÔNG TIN HOUSE
-        // ==============================
+
         try {
 
             House savedHouse = houseService.save(existingHouse);
 
 
-            // ==============================
+
             // 8. THÊM ẢNH CHI TIẾT
-            // ==============================
+
             if (imageFiles != null && !imageFiles.isEmpty()) {
 
                 houseService.saveHouseImages(
@@ -292,9 +292,9 @@ public class HouseController {
         }
 
 
-        // ==============================
+
         // 9. THÔNG BÁO THÀNH CÔNG
-        // ==============================
+
         redirectAttributes.addFlashAttribute(
                 "successMessage",
                 "Cập nhật thông tin nhà thành công!"

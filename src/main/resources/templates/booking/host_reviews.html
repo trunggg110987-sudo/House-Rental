@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Đánh Giá & Nhận Xét', ~{::div.main-content})}">
+<body>
+
+<div class="main-content container py-4">
+
+    <!-- TIÊU ĐỀ TRANG -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">
+                <i class="fa-solid fa-star-half-stroke text-warning me-2"></i>
+                Đánh giá & Nhận xét của khách
+            </h2>
+            <p class="text-muted mb-0">
+                Theo dõi phản hồi từ khách thuê để nâng cao chất lượng dịch vụ của bạn
+            </p>
+        </div>
+        <a th:href="@{/houses/my-houses}" class="btn btn-outline-secondary rounded-3">
+            <i class="fa-solid fa-house me-1"></i>
+            Quản lý nhà
+        </a>
+    </div>
+
+    <!-- KHỐI THỐNG KÊ TỔNG QUAN -->
+    <div class="row g-4 mb-5">
+        <!-- Card điểm trung bình -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center">
+                    <span class="text-muted fw-semibold mb-2">ĐIỂM ĐÁNH GIÁ TRUNG BÌNH</span>
+                    <h1 class="display-3 fw-bold text-dark mb-2" th:text="${averageRating}">0.0</h1>
+                    
+                    <!-- Ngôi sao FontAwesome theo điểm trung bình -->
+                    <div class="mb-3">
+                        <span th:each="i : ${#numbers.sequence(1, 5)}">
+                            <i class="fa-solid fa-star text-warning fs-4" 
+                               th:if="${averageRating >= i}"></i>
+                            <i class="fa-solid fa-star-half-stroke text-warning fs-4" 
+                               th:if="${averageRating < i and averageRating >= i - 0.5}"></i>
+                            <i class="fa-regular fa-star text-secondary fs-4 opacity-50" 
+                               th:if="${averageRating < i - 0.5}"></i>
+                        </span>
+                    </div>
+                    
+                    <p class="text-muted mb-0">
+                        Dựa trên <strong class="text-dark" th:text="${totalReviews}">0</strong> lượt nhận xét từ khách thuê
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card phân bố đánh giá -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-white">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">Chi tiết xếp hạng</h5>
+                    
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Lặp từ 5 sao xuống 1 sao -->
+                        <div class="d-flex align-items-center" th:each="star : ${#numbers.sequence(5, 1)}">
+                            <div style="width: 60px;" class="fw-semibold text-muted">
+                                <span th:text="${star}"></span> <i class="fa-solid fa-star text-warning ms-1"></i>
+                            </div>
+                            
+                            <div class="progress flex-grow-1 mx-3 rounded-pill" style="height: 10px; background-color: #e9ecef;">
+                                <div class="progress-bar bg-warning rounded-pill" 
+                                     role="progressbar" 
+                                     th:style="'width: ' + (${totalReviews > 0} ? (${starDistribution.get(star)} * 100.0 / ${totalReviews}) : 0) + '%'"
+                                     th:aria-valuenow="${starDistribution.get(star)}" 
+                                     aria-valuemin="0" 
+                                     th:aria-valuemax="${totalReviews}">
+                                </div>
+                            </div>
+                            
+                            <div style="width: 50px;" class="text-end text-muted fw-semibold">
+                                <span th:text="${starDistribution.get(star)}">0</span> lượt
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DANH SÁCH NHẬN XÉT -->
+    <div class="card shadow-sm border-0 rounded-4 bg-white">
+        <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">Tất cả nhận xét & bình luận</h5>
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold" 
+                  th:text="${totalReviews + ' Đánh giá'}">
+                0 Đánh giá
+            </span>
+        </div>
+        
+        <div class="card-body p-4">
+            <!-- Empty State -->
+            <div class="text-center py-5" th:if="${#lists.isEmpty(reviews)}">
+                <div class="mb-3">
+                    <i class="fa-regular fa-comments text-muted opacity-25" style="font-size: 4rem;"></i>
+                </div>
+                <h5 class="fw-semibold text-muted">Chưa có đánh giá nào</h5>
+                <p class="text-muted mb-0">Khi khách hàng hoàn thành trả phòng và để lại bình luận, chúng sẽ hiển thị ở đây.</p>
+            </div>
+
+            <!-- List of Reviews -->
+            <div class="d-flex flex-column gap-4" th:if="${not #lists.isEmpty(reviews)}">
+                <div class="pb-4 border-bottom" th:each="review, iterStat : ${reviews}" th:classappend="${iterStat.last} ? 'border-0 pb-0'">
+                    <div class="d-flex gap-3">
+                        <!-- Icon hiển thị tên viết tắt -->
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                             style="width: 50px; height: 50px; flex-shrink: 0; font-size: 1.1rem;"
+                             th:text="${#strings.substring(review.renter.fullName, 0, 1).toUpperCase()}">
+                            U
+                        </div>
+                        
+                        <!-- Nội dung nhận xét -->
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark" th:text="${review.renter.fullName}">Tên người dùng</h6>
+                                    <small class="text-muted">
+                                        Đã đánh giá cho căn nhà: 
+                                        <a th:href="@{/houses/{id}(id=${review.house.id})}" 
+                                           class="fw-semibold text-decoration-none text-primary" 
+                                           th:text="${review.house.name}">
+                                            Tên căn nhà
+                                        </a>
+                                    </small>
+                                </div>
+                                <span class="text-muted small" 
+                                      th:text="${#temporals.format(review.createdAt, 'dd/MM/yyyy HH:mm')}">
+                                    Ngày tạo
+                                </span>
+                            </div>
+                            
+                            <!-- Hiển thị sao của từng Review -->
+                            <div class="mb-2">
+                                <span th:each="i : ${#numbers.sequence(1, 5)}">
+                                    <i class="fa-solid fa-star text-warning" th:if="${review.rating >= i}"></i>
+                                    <i class="fa-regular fa-star text-secondary opacity-50" th:if="${review.rating < i}"></i>
+                                </span>
+                            </div>
+                            
+                            <!-- Ý kiến bình luận -->
+                            <div class="p-3 bg-light rounded-3 text-dark mb-0 fs-6 border-start border-warning border-3" 
+                                 th:text="${review.comment}">
+                                Nội dung bình luận ở đây.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -2,6 +2,7 @@ package vn.codegym.house_rental.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,10 @@ public class UserService {
 
     @Autowired
     private HouseRepository houseRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public long countHouse(User host){
         return houseRepository.countByHost(host);
     }
@@ -94,7 +99,7 @@ public class UserService {
 
             User user = User.builder()
                     .username(register.getUsername())
-                    .password(register.getPassword())
+                    .password(passwordEncoder.encode(register.getPassword()))
                     .fullName(register.getFullName())
                     .email(register.getEmail())
                     .phone(register.getPhone())
@@ -120,7 +125,7 @@ public class UserService {
                         )
                 );
 
-        if (!user.getPassword().equals(password)) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new IllegalArgumentException(
                     "Tên đăng nhập hoặc mật khẩu không chính xác"
             );
@@ -160,23 +165,25 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-        // ktra mk hiện tại
-        if (!user.getPassword().equals(changePasswordDto.getCurrentPassword())) {
+        if (!passwordEncoder.matches(
+                changePasswordDto.getCurrentPassword(),
+                user.getPassword())) {
             throw new IllegalArgumentException("Mật khẩu hiện tại không chính xác");
         }
 
-        // Kiểm tra khớp mật khẩu xác nhận
-        if (changePasswordDto.getNewPassword() != null && !changePasswordDto.getNewPassword().equals(changePasswordDto.getConfirmPassword())) {
-            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp với mật khẩu mới");
+        if (changePasswordDto.getNewPassword() == null ||
+                !changePasswordDto.getNewPassword()
+                        .equals(changePasswordDto.getConfirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp mật khẩu mới");
         }
 
-        // Mật khẩu mới không được trùng với mật khẩu cũ
-        if (changePasswordDto.getNewPassword().equals(changePasswordDto.getCurrentPassword())) {
-            throw new IllegalArgumentException("Mật khẩu mới không được trùng với mật khẩu cũ");
+        if (passwordEncoder.matches(
+                changePasswordDto.getNewPassword(),
+                user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới không được trùng mật khẩu cũ");
         }
 
-        // cập nhật mk mới
-        user.setPassword(changePasswordDto.getNewPassword());
+        user.setPassword(passwordEncoder.encode(changePasswordDto.getNewPassword()));
         return userRepository.save(user);
     }
     public User approveHost(Long id) {

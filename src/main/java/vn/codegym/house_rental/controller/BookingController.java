@@ -2,246 +2,543 @@ package vn.codegym.house_rental.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.codegym.house_rental.dto.MonthlyIncomeDTO;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
-import vn.codegym.house_rental.service.BookingService;
-import vn.codegym.house_rental.service.HouseService;
-import vn.codegym.house_rental.service.UserService;
+import vn.codegym.house_rental.repository.BookingRepository;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import jakarta.servlet.http.HttpSession;
-
-@Controller
-@RequestMapping("/bookings")
+@Service
+@Transactional
 public class BookingController {
 
     @Autowired
-    private BookingService bookingService;
+    private BookingRepository bookingRepository;
 
-    @Autowired
-    private HouseService houseService;
 
-    @Autowired
-    private UserService userService;
+    // DANH SÁCH BOOKING CỦA RENTER
 
-    // Gửi yêu cầu đặt phòng (Renter)
-    @PostMapping("/create")
-    public String createBooking(@RequestParam("houseId") Long houseId,
-                                @ModelAttribute("booking") Booking booking,
-                                HttpSession session,
-                                RedirectAttributes redirectAttributes) {
+    public Page<Booking> findByRenter(User renter, int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("id").descending()
+        );
 
-        // [CẢI TIẾN]: Loại bỏ hardcode "user1", lấy tài khoản đang đăng nhập từ Session
-        User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
-
-        Optional<House> houseOptional = houseService.findById(houseId);
-        if (houseOptional.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy thông tin nhà.");
-            return "redirect:/";
-        }
-
-        try {
-            bookingService.createBooking(houseOptional.get(), currentUser, booking);
-            redirectAttributes.addFlashAttribute("successMessage", "Gửi yêu cầu thuê nhà thành công! Vui lòng chờ chủ nhà phê duyệt.");
-            return "redirect:/bookings/my-bookings";
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            return "redirect:/houses/" + houseId;
-        }
+        return bookingRepository.findByRenter(
+                renter,
+                pageable
+        );
     }
 
-    // Danh sách đơn thuê của Khách (My Bookings)
-    @GetMapping("/my-bookings")
-    public String myBookings(@RequestParam(name = "page", defaultValue = "0") int page,
-                             @RequestParam(name = "size", defaultValue = "5") int size,
-                             HttpSession session,
-                             Model model) {
 
-        // [CẢI TIẾN]: Loại bỏ hardcode "user1", lấy tài khoản đang đăng nhập từ Session
-        User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
+    // DANH SÁCH BOOKING CỦA HOST
+    public Page<Booking> findByHost(User host, int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("id").descending()
+        );
 
-        Page<Booking> bookingPage = bookingService.findByRenter(currentUser, page, size);
-        model.addAttribute("bookings", bookingPage.getContent());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", bookingPage.getTotalPages());
-        return "booking/my_bookings";
+        return bookingRepository.findByHouse_Host(
+                host,
+                pageable
+        );
     }
 
-    // Quản lý yêu cầu thuê phòng dành cho Chủ nhà (Host Dashboard)
-    @GetMapping("/host-requests")
-    public String hostRequests(@RequestParam(name = "page", defaultValue = "0") int page,
-                               @RequestParam(name = "size", defaultValue = "5") int size,
-                               HttpSession session,
-                               Model model) {
 
-        // [CẢI TIẾN]: Loại bỏ hardcode "host1", lấy tài khoản Host đang đăng nhập từ Session
-        User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null) {
-            return "redirect:/login";
+    // TÌM KIẾM LỊCH ĐẶT THUÊ CỦA HOST
+    // Có:
+    // - Tên nhà
+    // - Khoảng ngày
+    // - Trạng thái
+    // - Phân trang
+    public Page<Booking> searchHostBookings(
+            User host,
+            String houseName,
+            LocalDate startDate,
+            LocalDate endDate,
+            Booking.BookingStatus status,
+            int page,
+            int size) {
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("id").descending()
+        );
+
+        String keyword = houseName;
+
+        // Chuẩn hóa ô tìm kiếm tên nhà
+        if (keyword != null && keyword.trim().isEmpty()) {
+            keyword = null;
         }
 
-        Page<Booking> bookingPage = bookingService.findByHost(currentUser, page, size);
-        model.addAttribute("bookings", bookingPage.getContent());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", bookingPage.getTotalPages());
-        return "booking/host_requests";
-    }
-
-    // Lịch đặt thuê của Chủ nhà
-    @GetMapping("/host-bookings")
-    public String hostBookings(
-            @RequestParam(name = "houseName", required = false) String houseName,
-            @RequestParam(name = "startDate", required = false)
-            @org.springframework.format.annotation.DateTimeFormat(
-                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
-            ) java.time.LocalDate startDate,
-            @RequestParam(name = "endDate", required = false)
-            @org.springframework.format.annotation.DateTimeFormat(
-                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
-            ) java.time.LocalDate endDate,
-            @RequestParam(name = "status", required = false) Booking.BookingStatus status,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "5") int size,
-            HttpSession session,
-            Model model) {
-
-        User currentUser = (User) session.getAttribute("currentUser");
-
-        if (currentUser == null) {
-            return "redirect:/login";
+        if (keyword != null) {
+            keyword = keyword.trim();
         }
 
-        // Nếu nhập sai khoảng ngày
-        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            model.addAttribute("errorMessage",
-                    "Ngày kết thúc không được trước ngày bắt đầu.");
-
-            startDate = null;
-            endDate = null;
-        }
-
-        // Tránh page âm
-        if (page < 0) {
-            page = 0;
-        }
-
-        Page<Booking> bookingPage = bookingService.searchHostBookings(
-                currentUser,
-                houseName,
+        return bookingRepository.searchHostBookings(
+                host,
+                keyword,
                 startDate,
                 endDate,
                 status,
-                page,
-                size
+                pageable
+        );
+    }
+
+
+    // TÌM BOOKING THEO ID
+
+    public Optional<Booking> findById(Long id) {
+        return bookingRepository.findById(id);
+    }
+
+
+    // TẠO BOOKING
+    public Booking createBooking(
+            House house,
+            User renter,
+            Booking booking) {
+
+        // -----------------------------------------------------
+        // Kiểm tra ngày thuê
+        // -----------------------------------------------------
+        if (booking.getStartDate() == null
+                || booking.getEndDate() == null) {
+
+            throw new IllegalArgumentException(
+                    "Ngày bắt đầu và ngày kết thúc không được để trống."
+            );
+        }
+
+        if (booking.getStartDate().isBefore(LocalDate.now())) {
+
+            throw new IllegalArgumentException(
+                    "Ngày bắt đầu thuê không thể ở trong quá khứ."
+            );
+        }
+
+        if (!booking.getEndDate().isAfter(booking.getStartDate())) {
+
+            throw new IllegalArgumentException(
+                    "Ngày kết thúc thuê phải sau ngày bắt đầu thuê."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Host không được thuê nhà của chính mình
+        // -----------------------------------------------------
+        if (house.getHost() != null
+                && renter != null
+                && house.getHost().getId().equals(renter.getId())) {
+
+            throw new IllegalArgumentException(
+                    "Chủ nhà không thể thuê chính căn nhà do mình đăng."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Kiểm tra trạng thái bảo trì của nhà
+        // -----------------------------------------------------
+        if (house.getStatus() == House.HouseStatus.MAINTENANCE) {
+
+            throw new IllegalArgumentException(
+                    "Căn nhà đang trong thời gian bảo trì, hiện tại không thể đặt phòng."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Kiểm tra lịch bảo trì
+        // -----------------------------------------------------
+        if (house.getStatusPeriods() != null) {
+
+            for (vn.codegym.house_rental.model.HouseStatusPeriod period
+                    : house.getStatusPeriods()) {
+
+                if (period.getStatus()
+                        == House.HouseStatus.MAINTENANCE) {
+
+                    if (booking.getStartDate().isBefore(period.getEndDate())
+                            && booking.getEndDate().isAfter(period.getStartDate())) {
+
+                        throw new IllegalArgumentException(
+                                "Căn nhà có lịch bảo trì từ ngày "
+                                        + period.getStartDate()
+                                        + " đến ngày "
+                                        + period.getEndDate()
+                                        + "."
+                        );
+                    }
+                }
+            }
+        }
+
+        // -----------------------------------------------------
+        // Kiểm tra trùng lịch
+        // APPROVED / CHECKED_IN sẽ được Repository xử lý
+        // -----------------------------------------------------
+        boolean isOverlapped =
+                bookingRepository.existsOverlappingBooking(
+                        house.getId(),
+                        booking.getStartDate(),
+                        booking.getEndDate()
+                );
+
+        if (isOverlapped) {
+
+            throw new IllegalArgumentException(
+                    "Căn nhà này đã được đặt trong khoảng thời gian bạn chọn."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Gán thông tin booking
+        // -----------------------------------------------------
+        booking.setHouse(house);
+        booking.setRenter(renter);
+        booking.setStatus(
+                Booking.BookingStatus.PENDING
         );
 
-        model.addAttribute("bookingPage", bookingPage);
+        // -----------------------------------------------------
+        // Tính tổng tiền
+        // -----------------------------------------------------
+        long days = ChronoUnit.DAYS.between(
+                booking.getStartDate(),
+                booking.getEndDate()
+        );
 
-        model.addAttribute("houseName", houseName);
-        model.addAttribute("startDate", startDate);
-        model.addAttribute("endDate", endDate);
-        model.addAttribute("status", status);
-
-        return "booking/host_bookings";
-    }
-
-    // Chủ nhà Phê duyệt yêu cầu (PENDING -> APPROVED)
-    @PostMapping("/{id}/approve")
-    public String approveBooking(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
-        bookingService.updateStatus(id, Booking.BookingStatus.APPROVED);
-        redirectAttributes.addFlashAttribute("successMessage", "Đã phê duyệt yêu cầu đặt nhà!");
-        return "redirect:/bookings/host-requests";
-    }
-
-    // Chủ nhà Từ chối yêu cầu (PENDING -> REJECTED)
-    @PostMapping("/{id}/reject")
-    public String rejectBooking(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
-        bookingService.updateStatus(id, Booking.BookingStatus.REJECTED);
-        redirectAttributes.addFlashAttribute("infoMessage", "Đã từ chối yêu cầu đặt nhà!");
-        return "redirect:/bookings/host-requests";
-    }
-
-    // [CẢI TIẾN]: Bổ sung endpoint cho phép Người thuê tự hủy đơn đặt phòng khi đang PENDING
-    @PostMapping("/{id}/cancel")
-    public String cancelBooking(@PathVariable("id") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
-        User currentUser = (User) session.getAttribute("currentUser");
-        if (currentUser == null) {
-            return "redirect:/login";
+        if (days <= 0) {
+            days = 1;
         }
 
-        try {
-            bookingService.cancelBooking(id, currentUser);
-            redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn đặt nhà thành công.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-        }
-        return "redirect:/bookings/my-bookings";
+        double dailyRate =
+                house.getDisplayPricePerDay();
+
+        double totalPrice =
+                dailyRate * days;
+
+        booking.setTotalPrice(
+                Math.round(totalPrice * 100.0) / 100.0
+        );
+
+        return bookingRepository.save(booking);
     }
-    @PostMapping("/{id}/checkin")
-    public String checkinBooking(@PathVariable("id") Long id,
-                                 HttpSession session,
-                                 RedirectAttributes redirectAttributes) {
 
-        User currentUser = (User) session.getAttribute("currentUser");
 
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
+    // CẬP NHẬT TRẠNG THÁI BOOKING
+    // Dùng cho:
+    // - APPROVED
+    // - REJECTED
+    // - CANCELLED
+    public Booking updateStatus(
+            Long bookingId,
+            Booking.BookingStatus status) {
 
-        try {
-            bookingService.updateStatus(id, Booking.BookingStatus.CHECKED_IN);
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Đã xác nhận khách nhận phòng."
-            );
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    e.getMessage()
+        Optional<Booking> optionalBooking =
+                bookingRepository.findById(bookingId);
+
+        if (optionalBooking.isEmpty()) {
+
+            throw new RuntimeException(
+                    "Không tìm thấy đơn đặt nhà ID: "
+                            + bookingId
             );
         }
 
-        return "redirect:/bookings/host-bookings";
-    }
+        Booking booking = optionalBooking.get();
 
+        booking.setStatus(status);
 
-    @PostMapping("/{id}/checkout")
-    public String checkoutBooking(@PathVariable("id") Long id,
-                                  HttpSession session,
-                                  RedirectAttributes redirectAttributes) {
+        bookingRepository.save(booking);
 
-        User currentUser = (User) session.getAttribute("currentUser");
+        House house = booking.getHouse();
 
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
+        // -----------------------------------------------------
+        // APPROVED -> Nhà được đánh dấu RENTED
+        // -----------------------------------------------------
+        if (status == Booking.BookingStatus.APPROVED) {
 
-        try {
-            bookingService.updateStatus(id, Booking.BookingStatus.CHECKED_OUT);
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Đã xác nhận khách trả phòng."
-            );
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    e.getMessage()
+            house.setStatus(
+                    House.HouseStatus.RENTED
             );
         }
 
-        return "redirect:/bookings/host-bookings";
+        // -----------------------------------------------------
+        // REJECTED / CANCELLED
+        // Nếu không còn booking phù hợp thì nhà AVAILABLE
+        // -----------------------------------------------------
+        else if (status == Booking.BookingStatus.REJECTED
+                || status == Booking.BookingStatus.CANCELLED) {
+
+            boolean hasOtherApproved =
+                    bookingRepository.existsOverlappingBooking(
+                            house.getId(),
+                            LocalDate.now(),
+                            LocalDate.now().plusYears(10)
+                    );
+
+            if (!hasOtherApproved
+                    && house.getStatus()
+                    != House.HouseStatus.MAINTENANCE) {
+
+                house.setStatus(
+                        House.HouseStatus.AVAILABLE
+                );
+            }
+        }
+
+        return booking;
     }
-    
+
+
+    // KHÁCH HỦY BOOKING
+
+    public void cancelBooking(
+            Long bookingId,
+            User renter) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Không tìm thấy đơn đặt nhà"
+                                )
+                        );
+
+        // -----------------------------------------------------
+        // Kiểm tra quyền
+        // -----------------------------------------------------
+        if (!booking.getRenter().getId()
+                .equals(renter.getId())) {
+
+            throw new IllegalStateException(
+                    "Bạn không có quyền hủy đơn đặt nhà này"
+            );
+        }
+
+        // -----------------------------------------------------
+        // Không cho hủy đơn đã kết thúc
+        // -----------------------------------------------------
+        if (booking.getStatus()
+                == Booking.BookingStatus.CANCELLED
+                || booking.getStatus()
+                == Booking.BookingStatus.REJECTED) {
+
+            throw new IllegalStateException(
+                    "Đơn đặt nhà này đã ở trạng thái bị hủy hoặc bị từ chối"
+            );
+        }
+
+        // -----------------------------------------------------
+        // Booking APPROVED phải hủy trước ngày bắt đầu
+        // -----------------------------------------------------
+        LocalDate today = LocalDate.now();
+
+        if (booking.getStatus()
+                == Booking.BookingStatus.APPROVED) {
+
+            if (!today.isBefore(
+                    booking.getStartDate())) {
+
+                throw new IllegalStateException(
+                        "Bạn chỉ có thể hủy đơn thuê nhà trước ngày bắt đầu thuê "
+                                + "(ngày nhận phòng) tối thiểu 1 ngày."
+                );
+            }
+        }
+
+        booking.setStatus(
+                Booking.BookingStatus.CANCELLED
+        );
+
+        bookingRepository.save(booking);
+
+        // -----------------------------------------------------
+        // Cập nhật trạng thái nhà
+        // -----------------------------------------------------
+        House house = booking.getHouse();
+
+        boolean hasOtherApproved =
+                bookingRepository.existsOverlappingBooking(
+                        house.getId(),
+                        LocalDate.now(),
+                        LocalDate.now().plusYears(10)
+                );
+
+        if (!hasOtherApproved
+                && house.getStatus()
+                != House.HouseStatus.MAINTENANCE) {
+
+            house.setStatus(
+                    House.HouseStatus.AVAILABLE
+            );
+        }
+    }
+
+  // THỐNG KÊ THU NHẬP THEO THÁNG
+    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(
+            Long hostId,
+            int year) {
+
+        List<MonthlyIncomeDTO> result =
+                bookingRepository.getMonthlyIncomeByHostAndYear(
+                        hostId,
+                        year
+                );
+
+        // Khởi tạo đủ 12 tháng
+        Map<Integer, Double> monthly =
+                new HashMap<>();
+
+        for (int i = 1; i <= 12; i++) {
+            monthly.put(i, 0.0);
+        }
+
+        // Ghi đè những tháng có doanh thu
+        for (MonthlyIncomeDTO dto : result) {
+
+            monthly.put(
+                    dto.getMonth(),
+                    dto.getIncome()
+            );
+        }
+
+        // Trả về đủ 12 tháng
+        List<MonthlyIncomeDTO> finalResult =
+                new ArrayList<>();
+
+        for (int i = 1; i <= 12; i++) {
+
+            Double income = monthly.get(i);
+
+            MonthlyIncomeDTO dto =
+                    new MonthlyIncomeDTO(
+                            i,
+                            income
+                    );
+
+            finalResult.add(dto);
+        }
+
+        return finalResult;
+    }
+
+
+    // CHECK-IN
+    // APPROVED -> CHECKED_IN
+    public void checkIn(
+            Long bookingId,
+            User currentHost) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Không tìm thấy booking với id : "
+                                                + bookingId
+                                )
+                        );
+
+        // -----------------------------------------------------
+        // Kiểm tra host có sở hữu căn nhà không
+        // -----------------------------------------------------
+        if (!booking.getHouse()
+                .getHost()
+                .getId()
+                .equals(currentHost.getId())) {
+
+            throw new RuntimeException(
+                    "Bạn không có quyền thực hiện check-in cho căn nhà này."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Chỉ APPROVED mới được check-in
+        // -----------------------------------------------------
+        if (booking.getStatus()
+                != Booking.BookingStatus.APPROVED) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể check-in đối với những đơn đặt phòng đã được phê duyệt"
+            );
+        }
+
+        booking.getHouse().setStatus(
+                House.HouseStatus.RENTED
+        );
+
+        booking.setStatus(
+                Booking.BookingStatus.CHECKED_IN
+        );
+
+        bookingRepository.save(booking);
+    }
+
+
+    // CHECK-OUT
+    // CHECKED_IN -> CHECKED_OUT
+    public void checkOut(
+            Long bookingId,
+            User currentHost) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Không tìm thấy booking với id : "
+                                                + bookingId
+                                )
+                        );
+
+        // -----------------------------------------------------
+        // Kiểm tra quyền host
+        // -----------------------------------------------------
+        if (!booking.getHouse()
+                .getHost()
+                .getId()
+                .equals(currentHost.getId())) {
+
+            throw new RuntimeException(
+                    "Bạn không có quyền thực hiện check-out cho căn nhà này."
+            );
+        }
+
+        // -----------------------------------------------------
+        // Chỉ CHECKED_IN mới được check-out
+        // -----------------------------------------------------
+        if (booking.getStatus()
+                != Booking.BookingStatus.CHECKED_IN) {
+
+            throw new IllegalStateException(
+                    "Bạn chưa check in căn nhà này."
+            );
+        }
+
+        booking.setStatus(
+                Booking.BookingStatus.CHECKED_OUT
+        );
+
+        booking.getHouse().setStatus(
+                House.HouseStatus.AVAILABLE
+        );
+
+        bookingRepository.save(booking);
+    }
 }
