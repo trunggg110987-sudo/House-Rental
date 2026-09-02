@@ -188,30 +188,40 @@ public class BookingService {
         }
     }
 
-    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(Long hostId, int year){
-        List<MonthlyIncomeDTO> result = bookingRepository.getMonthlyIncomeByHostAndYear(hostId, year);
+    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(Long hostId, int year) {
+        List<MonthlyIncomeDTO> result =
+                bookingRepository.getMonthlyIncomeByHostAndYear(hostId, year);
 
         Map<Integer, Double> monthly = new HashMap<>();
+        Map<Integer, Long> bookingCounts = new HashMap<>();
 
-        for(int i = 1; i <= 12; i++){
+        for (int i = 1; i <= 12; i++) {
             monthly.put(i, 0.0);
+            bookingCounts.put(i, 0L);
         }
 
-        for(MonthlyIncomeDTO dto : result){
-            monthly.put(dto.getMonth(), dto.getIncome());
+        for (MonthlyIncomeDTO dto : result) {
+            monthly.put(dto.getMonth(),
+                    dto.getIncome() != null ? dto.getIncome() : 0.0);
+
+            bookingCounts.put(dto.getMonth(),
+                    dto.getBookingCount() != null ? dto.getBookingCount() : 0L);
         }
 
         List<MonthlyIncomeDTO> finalResult = new ArrayList<>();
 
-        for(int i = 1; i <= monthly.size(); i++){
+        for (int i = 1; i <= 12; i++) {
             Double income = monthly.get(i);
-            MonthlyIncomeDTO dto = new MonthlyIncomeDTO(i , income);
+            Long bookingCount = bookingCounts.get(i);
+
+            MonthlyIncomeDTO dto =
+                    new MonthlyIncomeDTO(i, income, bookingCount);
+
             finalResult.add(dto);
         }
 
         return finalResult;
     }
-
     public void checkIn(Long bookingId, User currentHost){
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));

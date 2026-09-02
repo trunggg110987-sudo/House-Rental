@@ -65,10 +65,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Double getTotalSpent(@Param("renter") User renter);
 
     @Query("""
+
             SELECT new vn.codegym.house_rental.dto.MonthlyIncomeDTO(
-                MONTH(b.endDate),
-                COALESCE(SUM(b.totalPrice), 0.0)
-            )
+                 MONTH(b.endDate),
+                 COALESCE(SUM(b.totalPrice), 0.0),
+                 COUNT(b)
+             )
             FROM Booking b
             WHERE b.house.host.id = :hostId
             AND b.status IN (

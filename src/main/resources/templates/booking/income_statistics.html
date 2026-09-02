@@ -28,23 +28,54 @@
 
     <!-- Hàng thống kê tổng quát -->
     <div class="row mb-4">
-        <div class="col-md-4 col-12 mb-3 mb-md-0">
-            <div class="card border-0 rounded-4 shadow-sm p-4 bg-gradient text-white"
+
+        <!-- Tổng thu nhập -->
+        <div class="col-md-6 col-12 mb-3 mb-md-0">
+            <div class="card border-0 rounded-4 shadow-sm p-4 bg-gradient text-black"
                  style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h6 class="text-white-50 fw-bold text-uppercase mb-2">Tổng thu nhập năm <span th:text="${selectedYear}"></span></h6>
-                        <h3 class="fw-bold mb-0"
-                            th:with="totalIncome=${#aggregates.sum(monthlyIncomes.![income])}"
-                            th:text="${#numbers.formatDecimal(totalIncome != null ? totalIncome : 0, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">
-                        </h3>
+                        <h6 class="text-black-50 fw-bold text-uppercase mb-2">
+                            Tổng thu nhập năm <span th:text="${selectedYear}"></span>
+                        </h6>
+                        <div class="mt-1">
+                            <div class="fs-2 fw-bold lh-1"
+                                 th:with="totalIncome=${#aggregates.sum(monthlyIncomes.![income])}"
+                                 th:text="${#numbers.formatDecimal(totalIncome != null ? totalIncome : 0, 0, 'COMMA', 0, 'POINT')}">
+                            </div>
+                            <div class="fs-6 fw-semibold text-white-50 mt-2">VNĐ</div>
+                        </div>
                     </div>
-                    <div class="fs-1 text-white-50">
+                    <div class="fs-1 text-black-50">
                         <i class="fa-solid fa-wallet"></i>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Tổng số đơn đặt phòng -->
+        <div class="col-md-6 col-12">
+            <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="text-secondary fw-bold text-uppercase mb-2">
+                            Tổng số đơn đặt phòng năm <span th:text="${selectedYear}"></span>
+                        </h6>
+                        <div class="mt-1">
+                            <div class="fs-2 fw-bold text-primary lh-1"
+                                 th:with="totalBookings=${#aggregates.sum(monthlyIncomes.![bookingCount])}"
+                                 th:text="${totalBookings != null ? totalBookings : 0}">
+                            </div>
+                            <div class="fs-6 fw-semibold text-secondary mt-2">Đơn đặt phòng</div>
+                        </div>
+                    </div>
+                    <div class="fs-1 text-primary opacity-50">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Bảng chi tiết doanh thu theo tháng -->
@@ -57,6 +88,7 @@
                 <thead class="table-light">
                 <tr>
                     <th class="ps-4" style="width: 150px;">Tháng</th>
+                    <th>Số Đơn Đặt Phòng</th>
                     <th>Trạng Thái Hoạt Động</th>
                     <th class="text-end pe-4">Thu Nhập Thực Tế (VNĐ)</th>
                 </tr>
@@ -70,6 +102,15 @@
                             </span>
                         </div>
                     </td>
+
+                    <td>
+                            <span class="badge px-3 py-2 rounded-pill"
+                                  style="background-color: #dbeafe; color: #075985 !important;">
+                                <i class="fa-solid fa-calendar-check me-1"></i>
+                                <span th:text="${item.bookingCount != null ? item.bookingCount : 0}"></span> đơn
+                            </span>
+                    </td>
+
                     <td>
                         <span th:if="${item.income > 0}" class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
                             <i class="fa-solid fa-circle-check me-1"></i> Có phát sinh doanh thu
