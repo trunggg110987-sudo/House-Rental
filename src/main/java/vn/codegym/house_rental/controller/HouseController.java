@@ -51,12 +51,16 @@ public class HouseController {
     @Autowired
     private ReviewService reviewService;
 
-    // Xem chi tiết nhà cho thuê (Task 46)
+    @Autowired
+    private vn.codegym.house_rental.repository.BookingRepository bookingRepository;
+
+    // Xem chi tiết nhà cho thuê (Task 46 & Task 47)
     @GetMapping("/{id}")
     public String detail(
             @PathVariable("id") Long id,
             @RequestParam(name = "reviewPage", defaultValue = "0") int reviewPage,
             @RequestParam(name = "reviewSize", defaultValue = "5") int reviewSize,
+            HttpSession session,
             Model model) {
 
         Optional<House> houseOptional = houseService.findById(id);
@@ -80,7 +84,46 @@ public class HouseController {
         model.addAttribute("totalReviewsCount", reviewPageResult.getTotalElements());
         model.addAttribute("houseAvgRating", houseAvgRating);
 
+        // Task 47: Kiểm tra người dùng hiện tại có đủ điều kiện nhận xét không (đã từng thuê và đơn ở trạng thái "Đã trả phòng")
+        User currentUser = (User) session.getAttribute("currentUser");
+        boolean canComment = false;
+        if (currentUser != null) {
+            canComment = bookingRepository.existsByHouseIdAndRenterIdAndStatus(
+                    id, currentUser.getId(), Booking.BookingStatus.CHECKED_OUT
+            );
+        }
+        model.addAttribute("canComment", canComment);
+
         return "house/detail";
+    }
+
+    // Người dùng ghi nhận xét về một nhà mà mình đã thuê (Task 47)
+    @PostMapping("/{id}/comments")
+    public String addComment(
+            @PathVariable("id") Long houseId,
+            @RequestParam("comment") String comment,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            reviewService.addComment(houseId, currentUser, comment);
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Gửi nhận xét thành công! Cảm ơn bạn đã chia sẻ trải nghiệm."
+            );
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
+        }
+
+        return "redirect:/houses/" + houseId + "#reviews-section";
     }
 
     // Form thêm nhà mới

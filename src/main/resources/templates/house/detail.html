@@ -356,6 +356,65 @@
                         </div>
                     </div>
 
+                    <!-- FORM GHI NHẬN XÉT (Task 47) -->
+                    <!-- Khi người dùng đủ điều kiện (đã thuê và đơn ở trạng thái "Đã trả phòng") -->
+                    <div th:if="${canComment}" class="p-3 bg-white rounded-4 border shadow-sm mb-4">
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="fa-solid fa-pen-nib text-primary me-2"></i>Viết nhận xét của bạn
+                        </h6>
+                        <form th:action="@{'/houses/' + ${house.id} + '/comments'}" method="post">
+                            <div class="d-flex gap-3 align-items-start">
+                                <!-- Avatar người dùng: hiển thị sẵn -->
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
+                                     style="width: 48px; height: 48px; font-size: 1.1rem;"
+                                     th:text="${session.currentUser != null && session.currentUser.fullName != null && !#strings.isEmpty(session.currentUser.fullName) ? #strings.substring(session.currentUser.fullName, 0, 1).toUpperCase() : 'U'}">
+                                    U
+                                </div>
+                                <div class="flex-grow-1">
+                                    <!-- Tên người dùng: hiển thị sẵn -->
+                                    <div class="mb-2">
+                                        <span class="fw-bold text-dark" th:text="${session.currentUser != null ? session.currentUser.fullName : 'Người dùng'}">
+                                            Tên người dùng
+                                        </span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 px-2 py-1 small">
+                                            <i class="fa-solid fa-circle-check me-1"></i>Đã từng thuê nhà này
+                                        </span>
+                                    </div>
+                                    <!-- Nội dung (*) -->
+                                    <div class="mb-3">
+                                        <label for="commentContent" class="form-label fw-semibold small text-secondary">
+                                            Nội dung <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea id="commentContent" 
+                                                  name="comment" 
+                                                  class="form-control rounded-3" 
+                                                  rows="3" 
+                                                  placeholder="Hãy chia sẻ nhận xét của bạn về chất lượng căn nhà, sự nhiệt tình của chủ nhà..."
+                                                  required></textarea>
+                                    </div>
+                                    <!-- Nút "Gửi" -->
+                                    <div class="text-end">
+                                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                            <i class="fa-solid fa-paper-plane me-1"></i> Gửi
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Khi chưa đủ điều kiện (chưa từng thuê hoặc chưa trả phòng) -->
+                    <div th:if="${session.currentUser != null and !canComment}" class="alert alert-light border rounded-3 text-muted small mb-4">
+                        <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                        <span>Bạn chỉ có thể gửi nhận xét sau khi đã đặt thuê và đơn ở trạng thái <strong>"Đã trả phòng"</strong>.</span>
+                    </div>
+
+                    <!-- Khi chưa đăng nhập -->
+                    <div th:if="${session.currentUser == null}" class="alert alert-light border rounded-3 text-muted small mb-4">
+                        <i class="fa-solid fa-right-to-bracket text-primary me-2"></i>
+                        <span>Vui lòng <a th:href="@{/login}" class="fw-bold text-primary text-decoration-none">Đăng nhập</a> để viết nhận xét nếu bạn đã từng thuê căn nhà này.</span>
+                    </div>
+
                     <!-- Trường hợp chưa có đánh giá nào -->
                     <div class="text-center py-5" th:if="${#lists.isEmpty(reviews)}">
                         <i class="fa-regular fa-comments text-muted opacity-25" style="font-size: 3.5rem;"></i>

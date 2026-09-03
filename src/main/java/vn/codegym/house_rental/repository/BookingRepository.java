@@ -229,4 +229,6 @@ public interface BookingRepository
     );
 
     boolean existsByHouseIdAndRenterIdAndStatus(Long houseId, Long renterId, Booking.BookingStatus status);
+
+    List<Booking> findByHouseIdAndRenterIdAndStatusOrderByEndDateDesc(Long houseId, Long renterId, Booking.BookingStatus status);
 }

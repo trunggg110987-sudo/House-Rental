@@ -3,6 +3,7 @@ package vn.codegym.house_rental.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vn.codegym.house_rental.model.Booking;
+import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.Review;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
@@ -144,5 +145,51 @@ public class ReviewService {
 
     public List<Review> getAllVisibleReviewsByHouse(Long houseId) {
         return reviewRepository.findVisibleReviewsByHouseId(houseId);
+    }
+
+    public Review addComment(Long houseId, User renter, String comment) {
+        if (renter == null || renter.getId() == null) {
+            throw new IllegalStateException("Vui lòng đăng nhập để gửi nhận xét.");
+        }
+        if (comment == null || comment.trim().isEmpty()) {
+            throw new IllegalArgumentException("Nội dung nhận xét không được để trống.");
+        }
+
+        // Kiểm tra xem user có đơn thuê nhà này ở trạng thái CHECKED_OUT không
+        List<Booking> checkedOutBookings = bookingRepository.findByHouseIdAndRenterIdAndStatusOrderByEndDateDesc(
+                houseId, renter.getId(), Booking.BookingStatus.CHECKED_OUT
+        );
+        if (checkedOutBookings.isEmpty()) {
+            throw new IllegalStateException("Chỉ được nhận xét với ngôi nhà đã đặt thuê và đơn ở trạng thái 'Đã trả phòng'.");
+        }
+
+        Booking latestBooking = checkedOutBookings.get(0);
+        House house = latestBooking.getHouse();
+
+        // Tìm review đã có của renter cho booking này hoặc cho căn nhà này
+        Optional<Review> existingReviewOpt = reviewRepository.findByBookingId(latestBooking.getId());
+        if (existingReviewOpt.isEmpty()) {
+            existingReviewOpt = reviewRepository.findFirstByHouseIdAndRenterId(houseId, renter.getId());
+        }
+
+        Review review;
+        if (existingReviewOpt.isPresent()) {
+            review = existingReviewOpt.get();
+            review.setComment(comment.trim());
+            review.setCreatedAt(LocalDateTime.now());
+            review.setHidden(false);
+        } else {
+            review = Review.builder()
+                    .house(house)
+                    .renter(renter)
+                    .booking(latestBooking)
+                    .comment(comment.trim())
+                    .rating(5)
+                    .createdAt(LocalDateTime.now())
+                    .hidden(false)
+                    .build();
+        }
+
+        return reviewRepository.save(review);
     }
 }
