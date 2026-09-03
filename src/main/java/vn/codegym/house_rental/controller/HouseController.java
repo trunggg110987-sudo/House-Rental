@@ -10,10 +10,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
+import vn.codegym.house_rental.model.Review;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.service.CategoryService;
 import vn.codegym.house_rental.service.FileStorageService;
 import vn.codegym.house_rental.service.HouseService;
+import vn.codegym.house_rental.service.ReviewService;
 import vn.codegym.house_rental.service.UserService;
 import vn.codegym.house_rental.service.HouseStatusPeriodService;
 
@@ -46,9 +48,17 @@ public class HouseController {
     @Autowired
     private HouseStatusPeriodService houseStatusPeriodService;
 
-    // Xem chi tiết nhà cho thuê
+    @Autowired
+    private ReviewService reviewService;
+
+    // Xem chi tiết nhà cho thuê (Task 46)
     @GetMapping("/{id}")
-    public String detail(@PathVariable("id") Long id, Model model) {
+    public String detail(
+            @PathVariable("id") Long id,
+            @RequestParam(name = "reviewPage", defaultValue = "0") int reviewPage,
+            @RequestParam(name = "reviewSize", defaultValue = "5") int reviewSize,
+            Model model) {
+
         Optional<House> houseOptional = houseService.findById(id);
         if (houseOptional.isEmpty()) {
             return "redirect:/";
@@ -57,6 +67,19 @@ public class HouseController {
         model.addAttribute("house", house);
         model.addAttribute("booking", new Booking());
         model.addAttribute("statusPeriods", houseService.getStatusPeriods(house));
+
+        // Task 46: Đánh giá & nhận xét của người dùng khác (chỉ lấy review chưa bị ẩn, có phân trang)
+        Page<Review> reviewPageResult = reviewService.getVisibleReviewsByHouse(id, reviewPage, reviewSize);
+        List<Review> allVisibleReviews = reviewService.getAllVisibleReviewsByHouse(id);
+        double houseAvgRating = reviewService.getAverageRating(allVisibleReviews);
+
+        model.addAttribute("reviewsPage", reviewPageResult);
+        model.addAttribute("reviews", reviewPageResult.getContent());
+        model.addAttribute("currentReviewPage", reviewPage);
+        model.addAttribute("totalReviewPages", reviewPageResult.getTotalPages());
+        model.addAttribute("totalReviewsCount", reviewPageResult.getTotalElements());
+        model.addAttribute("houseAvgRating", houseAvgRating);
+
         return "house/detail";
     }
 

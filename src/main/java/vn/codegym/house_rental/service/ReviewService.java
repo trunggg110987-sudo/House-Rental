@@ -8,6 +8,10 @@ import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
 import vn.codegym.house_rental.repository.ReviewRepository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -131,5 +135,14 @@ public class ReviewService {
             }
         }
         return distribution;
+    }
+
+    public Page<Review> getVisibleReviewsByHouse(Long houseId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return reviewRepository.findVisibleReviewsByHouseId(houseId, pageable);
+    }
+
+    public List<Review> getAllVisibleReviewsByHouse(Long houseId) {
+        return reviewRepository.findVisibleReviewsByHouseId(houseId);
     }
 }

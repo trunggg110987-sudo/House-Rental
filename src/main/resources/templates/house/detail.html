@@ -322,6 +322,107 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ==============================================
+                     KHỐI ĐÁNH GIÁ & NHẬN XÉT CỦA KHÁCH HÀNG (Task 46)
+                     ============================================== -->
+                <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" id="reviews-section">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1">
+                                <i class="fa-solid fa-star-half-stroke text-warning me-2"></i>
+                                Đánh Giá & Nhận Xét
+                            </h4>
+                            <p class="text-muted small mb-0">Ý kiến chân thực từ những khách hàng đã từng lưu trú tại đây</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="text-end" th:if="${totalReviewsCount > 0}">
+                                <div class="d-flex align-items-center gap-1 justify-content-end">
+                                    <span class="fs-4 fw-bold text-dark" th:text="${houseAvgRating}">5.0</span>
+                                    <span class="text-muted fs-6">/ 5.0</span>
+                                </div>
+                                <div>
+                                    <span th:each="i : ${#numbers.sequence(1, 5)}">
+                                        <i class="fa-solid fa-star text-warning small" th:if="${houseAvgRating >= i}"></i>
+                                        <i class="fa-solid fa-star-half-stroke text-warning small" th:if="${houseAvgRating < i and houseAvgRating >= i - 0.5}"></i>
+                                        <i class="fa-regular fa-star text-secondary small opacity-50" th:if="${houseAvgRating < i - 0.5}"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-semibold" 
+                                  th:text="${totalReviewsCount + ' nhận xét'}">
+                                0 nhận xét
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Trường hợp chưa có đánh giá nào -->
+                    <div class="text-center py-5" th:if="${#lists.isEmpty(reviews)}">
+                        <i class="fa-regular fa-comments text-muted opacity-25" style="font-size: 3.5rem;"></i>
+                        <h6 class="fw-bold text-secondary mt-3 mb-1">Chưa có đánh giá nào cho căn nhà này</h6>
+                        <p class="text-muted small mb-0">Các nhận xét từ khách thuê đã trả phòng sẽ được hiển thị tại đây.</p>
+                    </div>
+
+                    <!-- Danh sách đánh giá & nhận xét -->
+                    <div class="d-flex flex-column gap-3" th:if="${not #lists.isEmpty(reviews)}">
+                        <div class="p-3 bg-light rounded-4 border border-light-subtle" th:each="rev : ${reviews}">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Avatar chữ cái đầu -->
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                                         style="width: 40px; height: 40px; font-size: 1rem;"
+                                         th:text="${rev.renter != null && rev.renter.fullName != null && !#strings.isEmpty(rev.renter.fullName) ? #strings.substring(rev.renter.fullName, 0, 1).toUpperCase() : 'U'}">
+                                        U
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold text-dark mb-0" th:text="${rev.renter != null ? rev.renter.fullName : 'Khách thuê'}">Tên người dùng</h6>
+                                        <div class="text-muted small" th:if="${rev.createdAt != null}">
+                                            <i class="fa-regular fa-clock me-1"></i>
+                                            <span th:text="${#temporals.format(rev.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Hiển thị số sao -->
+                                <div class="bg-white px-2 py-1 rounded-pill border shadow-sm">
+                                    <span th:each="i : ${#numbers.sequence(1, 5)}">
+                                        <i class="fa-solid fa-star text-warning small" th:if="${rev.rating >= i}"></i>
+                                        <i class="fa-regular fa-star text-secondary small opacity-50" th:if="${rev.rating < i}"></i>
+                                    </span>
+                                    <span class="small fw-bold ms-1 text-dark" th:text="${rev.rating + '/5'}">5/5</span>
+                                </div>
+                            </div>
+                            <!-- Nội dung nhận xét -->
+                            <div class="text-secondary small mt-2 ps-1" 
+                                 th:if="${rev.comment != null && !#strings.isEmpty(rev.comment)}" 
+                                 th:text="${rev.comment}">
+                                Nội dung nhận xét của khách...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Thanh phân trang nhận xét -->
+                    <div class="mt-4 pt-3 border-top" th:if="${totalReviewPages > 1}">
+                        <nav aria-label="Phân trang nhận xét">
+                            <ul class="pagination pagination-sm justify-content-center mb-0">
+                                <li class="page-item" th:classappend="${currentReviewPage == 0} ? 'disabled'">
+                                    <a class="page-link rounded-pill px-3 me-2" 
+                                       th:href="@{'/houses/' + ${house.id}(reviewPage=${currentReviewPage - 1})} + '#reviews-section'">Trước</a>
+                                </li>
+                                <li class="page-item" th:each="i : ${#numbers.sequence(0, totalReviewPages - 1)}" 
+                                    th:classappend="${i == currentReviewPage} ? 'active'">
+                                    <a class="page-link rounded-circle mx-1 d-flex align-items-center justify-content-center" 
+                                       style="width: 34px; height: 34px;"
+                                       th:href="@{'/houses/' + ${house.id}(reviewPage=${i})} + '#reviews-section'" 
+                                       th:text="${i + 1}">1</a>
+                                </li>
+                                <li class="page-item" th:classappend="${currentReviewPage == totalReviewPages - 1} ? 'disabled'">
+                                    <a class="page-link rounded-pill px-3 ms-2" 
+                                       th:href="@{'/houses/' + ${house.id}(reviewPage=${currentReviewPage + 1})} + '#reviews-section'">Sau</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Side: Booking Panel & Price Tag -->
