@@ -47,9 +47,15 @@ public interface HouseRepository extends JpaRepository<House, Long> {
             Pageable pageable
     );
 
+    Page<House> findByStatus(House.HouseStatus status, Pageable pageable);
+
     @Query("""
             SELECT b.house FROM Booking b
-            WHERE b.status = vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED
+            WHERE b.status IN (
+                vn.codegym.house_rental.model.Booking.BookingStatus.APPROVED,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_IN,
+                vn.codegym.house_rental.model.Booking.BookingStatus.CHECKED_OUT
+            )
             GROUP BY b.house
             ORDER BY COUNT(b) DESC
             """)

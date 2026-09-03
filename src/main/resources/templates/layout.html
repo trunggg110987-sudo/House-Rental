@@ -146,9 +146,9 @@
                     </a>
 
                     <div class="dropdown">
-                        <button class="btn btn-light btn-sm rounded-pill dropdown-toggle fw-semibold px-3 border" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-light btn-sm rounded-pill dropdown-toggle fw-semibold px-3 border d-flex align-items-center" type="button" data-bs-toggle="dropdown">
                             <i class="fa-solid fa-circle-user text-primary me-1"></i>
-                            <span th:text="${session.currentUser.fullName}">User</span>
+                            <span class="d-inline-block text-truncate" style="max-width: 130px;" th:text="${session.currentUser.fullName}">User</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end rounded-3 shadow border-0 mt-2">
                             <li><a class="dropdown-item" th:href="@{/profile}"><i class="fa-solid fa-id-card me-2"></i>Trang Cá Nhân</a></li>
@@ -159,7 +159,7 @@
                     </div>
 
                     <a th:if="${session.currentUser.role.name() == 'ROLE_HOST' or session.currentUser.role.name() == 'ROLE_ADMIN'}" 
-                       th:href="@{/houses/create}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold ms-1">
+                       th:href="@{/houses/create}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold ms-1 d-none d-xl-inline-block text-nowrap">
                         <i class="fa-solid fa-plus me-1"></i> Đăng Tin
                     </a>
                 </th:block>

@@ -30,12 +30,14 @@
                         <option value="">-- Chọn loại nhà --</option>
                         <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
                     </select>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Giá Cho Thuê (VNĐ / Ngày) <span
                             class="text-danger">*</span></label>
-                    <input type="number" step="50000" th:field="*{pricePerDay}" class="form-control"
-                           placeholder="VD: 850000" required/>
+                    <input type="number" step="10000" min="1000" max="500000000" th:field="*{pricePerDay}" class="form-control"
+                           placeholder="VD: 850000 (tối đa 500.000.000)" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('pricePerDay')}" th:errors="*{pricePerDay}"></div>
                 </div>
             </div>
 
@@ -43,18 +45,21 @@
                 <label class="form-label fw-bold">Địa Chỉ Chi Tiết <span class="text-danger">*</span></label>
                 <input type="text" th:field="*{address}" class="form-control"
                        placeholder="Số nhà, đường, quận/huyện, tỉnh/thành phố" required/>
+                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
             </div>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">Số Phòng Ngủ</label>
-                    <input type="number" th:field="*{numberOfBedrooms}" class="form-control" min="1" value="1"
-                           required/>
+                    <label class="form-label fw-bold">Số Phòng Ngủ (Tối đa 50) <span class="text-danger">*</span></label>
+                    <input type="number" th:field="*{numberOfBedrooms}" class="form-control" min="1" max="50" value="1"
+                           placeholder="1 - 50 phòng" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('numberOfBedrooms')}" th:errors="*{numberOfBedrooms}"></div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">Số Phòng Tắm / WC</label>
-                    <input type="number" th:field="*{numberOfBathrooms}" class="form-control" min="1" value="1"
-                           required/>
+                    <label class="form-label fw-bold">Số Phòng Tắm / WC (Tối đa 50) <span class="text-danger">*</span></label>
+                    <input type="number" th:field="*{numberOfBathrooms}" class="form-control" min="1" max="50" value="1"
+                           placeholder="1 - 50 phòng" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('numberOfBathrooms')}" th:errors="*{numberOfBathrooms}"></div>
                 </div>
             </div>
 

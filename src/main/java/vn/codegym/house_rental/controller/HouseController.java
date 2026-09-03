@@ -102,6 +102,8 @@ public class HouseController {
 
             if (house.getPricePerDay() == null && house.getPricePerMonth() != null) {
                 house.setPricePerDay(Math.round((house.getPricePerMonth() / 30.0) * 100.0) / 100.0);
+            } else if (house.getPricePerDay() != null) {
+                house.setPricePerMonth(house.getPricePerDay() * 30.0);
             }
 
             house.setStatus(House.HouseStatus.AVAILABLE);
@@ -235,6 +237,7 @@ public class HouseController {
         existingHouse.setName(house.getName());
         existingHouse.setAddress(house.getAddress());
         existingHouse.setPricePerDay(house.getPricePerDay());
+        existingHouse.setPricePerMonth(house.getPricePerDay() != null ? house.getPricePerDay() * 30.0 : null);
         existingHouse.setNumberOfBedrooms(house.getNumberOfBedrooms());
         existingHouse.setNumberOfBathrooms(house.getNumberOfBathrooms());
         existingHouse.setDescription(house.getDescription());

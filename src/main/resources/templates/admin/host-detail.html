@@ -186,7 +186,7 @@
 
             <th>Địa chỉ</th>
 
-            <th>Giá</th>
+            <th>Giá thuê (VNĐ / ngày)</th>
 
             <th>Trạng thái</th>
 
@@ -206,11 +206,16 @@
 
             <td th:text="${house.address}"></td>
 
-            <td
-                    th:text="${#numbers.formatDecimal(house.pricePerMonth,0,'COMMA',0,'POINT')}+' VNĐ'">
+            <td class="fw-bold text-primary"
+                    th:text="${#numbers.formatDecimal(house.getDisplayPricePerDay(),0,'COMMA',0,'POINT')}+' VNĐ / ngày'">
             </td>
 
-            <td th:text="${house.status}"></td>
+            <td>
+              <span class="badge"
+                    th:classappend="${house.status != null and house.status.name() == 'AVAILABLE' ? 'bg-success' : (house.status != null and house.status.name() == 'MAINTENANCE' ? 'bg-warning text-dark' : 'bg-danger')}"
+                    th:text="${house.getStatusVietnamese()}">
+              </span>
+            </td>
 
             <td>
 

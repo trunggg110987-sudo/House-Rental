@@ -50,7 +50,7 @@
                         th:text="${#numbers.formatDecimal(b.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
                     <td>
                             <span class="badge px-3 py-2 rounded-pill"
-                                  th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                  th:classappend="${b.status.name() == 'APPROVED' ? 'bg-success' : (b.status.name() == 'PENDING' ? 'bg-warning text-dark' : (b.status.name() == 'CHECKED_IN' ? 'bg-primary' : (b.status.name() == 'CHECKED_OUT' ? 'bg-info text-dark' : 'bg-danger')))}"
                                   th:text="${b.getStatusVietnamese()}">
                             </span>
                     </td>
@@ -58,7 +58,7 @@
                         <!-- Hủy yêu cầu đặt nhà khi PENDING hoặc khi APPROVED trước ngày nhận phòng >= 1 ngày -->
                         <form th:if="${b.status.name() == 'PENDING' or (b.status.name() == 'APPROVED' and T(java.time.LocalDate).now().isBefore(b.startDate))}" 
                               th:action="@{'/bookings/' + ${b.id} + '/cancel'}" method="post"
-                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu thuê nhà này? (Lưu ý: Hủy trước ngày nhận phòng 1 ngày)');">
+                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu thuê nhà này? (Lưu ý: Đơn đã duyệt phải hủy trước ngày nhận phòng ít nhất 1 ngày)');">
                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill">
                                 <i class="fa-solid fa-xmark me-1"></i> Hủy Đơn Thuê
                             </button>

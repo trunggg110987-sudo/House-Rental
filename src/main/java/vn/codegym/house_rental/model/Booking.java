@@ -55,6 +55,8 @@ public class Booking {
         switch (status) {
             case PENDING: return "Chờ duyệt";
             case APPROVED: return "Đã phê duyệt";
+            case CHECKED_IN: return "Đang ở";
+            case CHECKED_OUT: return "Đã trả phòng";
             case REJECTED: return "Đã từ chối";
             case CANCELLED: return "Đã hủy";
             default: return status.name();

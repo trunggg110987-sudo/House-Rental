@@ -126,7 +126,8 @@ public class HouseService {
 
             List<House> availableHouses =
                     houseRepository
-                            .findAll(
+                            .findByStatus(
+                                    House.HouseStatus.AVAILABLE,
                                     PageRequest.of(
                                             0,
                                             5,

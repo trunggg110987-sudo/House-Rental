@@ -1,6 +1,7 @@
 package vn.codegym.house_rental.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,14 +33,19 @@ public class House {
 
     @NotNull(message = "Giá thuê theo ngày không được để trống")
     @Min(value = 0, message = "Giá thuê phải lớn hơn 0")
+    @Max(value = 500000000L, message = "Giá thuê theo ngày tối đa là 500.000.000 VNĐ")
     private Double pricePerDay;
 
     private Double pricePerMonth;
 
+    @NotNull(message = "Số phòng ngủ không được để trống")
     @Min(value = 1, message = "Số phòng ngủ tối thiểu là 1")
+    @Max(value = 50, message = "Số phòng ngủ tối đa là 50")
     private Integer numberOfBedrooms;
 
+    @NotNull(message = "Số phòng tắm không được để trống")
     @Min(value = 1, message = "Số phòng tắm tối thiểu là 1")
+    @Max(value = 50, message = "Số phòng tắm tối đa là 50")
     private Integer numberOfBathrooms;
 
     @Column(columnDefinition = "TEXT")

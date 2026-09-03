@@ -122,15 +122,13 @@ public class BookingService {
         // =====================================================
         // KIỂM TRA BOOKING TRÙNG LỊCH
         //
-        // PENDING
-        // APPROVED
-        // CHECKED_IN
-        // đều khóa lịch
+        // Chỉ khóa đặt phòng trong khoảng thời gian
+        // căn nhà thực sự có người thuê (APPROVED hoặc CHECKED_IN)
         // =====================================================
 
         boolean overlapped =
                 bookingRepository
-                        .existsOverlappingBookingIncludingPending(
+                        .existsOverlappingBooking(
                                 house.getId(),
                                 startDate,
                                 endDate
@@ -138,7 +136,7 @@ public class BookingService {
 
         if (overlapped) {
             throw new IllegalArgumentException(
-                    "Căn nhà này đã có người đặt trong khoảng thời gian bạn chọn."
+                    "Căn nhà này đã có người thuê trong khoảng thời gian bạn chọn."
             );
         }
 
@@ -386,14 +384,14 @@ public class BookingService {
         }
 
         // =====================================================
-        // CHỈ PENDING MỚI ĐƯỢC HỦY
+        // CHỈ PENDING HOẶC APPROVED MỚI ĐƯỢC HỦY
         // =====================================================
 
-        if (booking.getStatus()
-                != Booking.BookingStatus.PENDING) {
+        if (booking.getStatus() != Booking.BookingStatus.PENDING
+                && booking.getStatus() != Booking.BookingStatus.APPROVED) {
 
             throw new IllegalStateException(
-                    "Chỉ có thể hủy đơn đang ở trạng thái PENDING."
+                    "Chỉ có thể hủy đơn đang ở trạng thái Chờ duyệt (PENDING) hoặc Đã duyệt (APPROVED)."
             );
         }
 
@@ -421,18 +419,15 @@ public class BookingService {
 
         /*
          * Quy tắc:
-         *
-         * Còn 0 ngày  -> KHÔNG được hủy
-         * Còn 1 ngày  -> KHÔNG được hủy
-         * Còn 2 ngày  -> ĐƯỢC hủy
-         * Còn 3 ngày  -> ĐƯỢC hủy
+         * Đơn APPROVED: Phải hủy trước ngày nhận phòng ít nhất 1 ngày (daysUntilCheckIn >= 1).
+         * Nếu đã đến ngày nhận phòng (daysUntilCheckIn <= 0) hoặc quá ngày: KHÔNG được hủy.
          */
-
-        if (daysUntilCheckIn < 1) {
-
-            throw new IllegalStateException(
-                    "Không thể hủy vì đã đến ngày nhận phòng."
-            );
+        if (booking.getStatus() == Booking.BookingStatus.APPROVED) {
+            if (daysUntilCheckIn < 1) {
+                throw new IllegalStateException(
+                        "Không thể hủy đơn đã phê duyệt vì đã đến hoặc qua ngày nhận phòng (Phải hủy trước ít nhất 1 ngày)."
+                );
+            }
         }
 
         // =====================================================
@@ -443,7 +438,22 @@ public class BookingService {
                 Booking.BookingStatus.CANCELLED
         );
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Nếu đơn từng được APPROVED và nhà đang ở trạng thái RENTED, kiểm tra trả lại AVAILABLE nếu không còn đơn nào khác
+        House house = booking.getHouse();
+        if (house != null && house.getStatus() == House.HouseStatus.RENTED) {
+            boolean hasOtherActive = bookingRepository.existsOverlappingBooking(
+                    house.getId(),
+                    LocalDate.now(),
+                    LocalDate.now().plusYears(1)
+            );
+            if (!hasOtherActive) {
+                house.setStatus(House.HouseStatus.AVAILABLE);
+            }
+        }
+
+        return savedBooking;
     }
 
 

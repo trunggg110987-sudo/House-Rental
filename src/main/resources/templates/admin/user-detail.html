@@ -192,7 +192,12 @@
 
                         </td>
 
-                        <td th:text="${booking.status}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${booking.status.name() == 'APPROVED' ? 'bg-success' : (booking.status.name() == 'PENDING' ? 'bg-warning text-dark' : (booking.status.name() == 'CHECKED_IN' ? 'bg-primary' : (booking.status.name() == 'CHECKED_OUT' ? 'bg-info text-dark' : 'bg-danger')))}"
+                                  th:text="${booking.getStatusVietnamese()}">
+                            </span>
+                        </td>
 
                     </tr>
 
