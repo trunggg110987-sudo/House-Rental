@@ -39,4 +39,25 @@ public class NotificationService {
 
     }
 
+    // Đếm thông báo chưa đọc
+    public long countUnread(User user) {
+        if (user == null || user.getId() == null) {
+            return 0;
+        }
+        return notificationRepository.countByUserAndIsReadFalse(user);
+    }
+
+    // Đánh dấu tất cả là đã đọc
+    public void markAllAsRead(User user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        List<Notification> list = notificationRepository.findByUserOrderByCreatedAtDesc(user);
+        for (Notification n : list) {
+            if (Boolean.FALSE.equals(n.getIsRead())) {
+                n.setIsRead(true);
+                notificationRepository.save(n);
+            }
+        }
+    }
 }

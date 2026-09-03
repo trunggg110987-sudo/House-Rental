@@ -143,6 +143,12 @@
                 <th:block th:if="${session.currentUser != null}">
                     <a th:href="@{/notifications}" class="btn btn-light btn-sm rounded-circle position-relative me-1" title="Thông báo">
                         <i class="fa-solid fa-bell text-secondary"></i>
+                        <span th:if="${unreadNotificationCount != null and unreadNotificationCount > 0}"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size: 0.65rem;"
+                              th:text="${unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}">
+                            1
+                        </span>
                     </a>
 
                     <div class="dropdown">

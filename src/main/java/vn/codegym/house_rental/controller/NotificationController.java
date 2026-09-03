@@ -32,6 +32,9 @@ public class NotificationController {
                 notificationService.getNotifications(user)
         );
 
+        // Đánh dấu tất cả thông báo là đã đọc
+        notificationService.markAllAsRead(user);
+
         return "notification/list";
     }
 }

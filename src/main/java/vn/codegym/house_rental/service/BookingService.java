@@ -15,6 +15,7 @@ import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +28,9 @@ public class BookingService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
 
     // =========================================================
@@ -454,6 +458,20 @@ public class BookingService {
             if (!hasOtherActive) {
                 house.setStatus(House.HouseStatus.AVAILABLE);
             }
+        }
+
+        // Gửi thông báo cho Chủ nhà khi khách hủy thuê nhà (Task 48)
+        if (house != null && house.getHost() != null) {
+            String renterName = (renter != null && renter.getFullName() != null && !renter.getFullName().isBlank())
+                    ? renter.getFullName()
+                    : "Khách thuê";
+            String houseName = (house.getName() != null && !house.getName().isBlank())
+                    ? house.getName()
+                    : "căn nhà";
+            String cancelDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String title = "Khách hủy thuê nhà";
+            String content = renterName + " đã hủy thuê " + houseName + " vào ngày " + cancelDate;
+            notificationService.sendNotification(house.getHost(), title, content);
         }
 
         return savedBooking;
