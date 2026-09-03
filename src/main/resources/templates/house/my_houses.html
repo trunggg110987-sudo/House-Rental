@@ -137,35 +137,66 @@
                                 <p class="text-muted small mb-3">Căn nhà: <strong th:text="${h.name}"></strong></p>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Trạng Thái Áp Dụng <span
-                                            class="text-danger">*</span></label>
-                                    <select name="status" class="form-select" required>
-                                        <option value="AVAILABLE"> AVAILABLE (Còn trống / Cho thuê)</option>
-                                        <option value="RENTED"> RENTED (Đã cho thuê)</option>
-                                        <option value="MAINTENANCE"> MAINTENANCE (Đang bảo trì)</option>
+                                    <label class="form-label">
+                                        Trạng thái
+                                    </label>
+
+                                    <select name="status"
+                                            th:id="'statusSelect-' + ${h.id}"
+                                            class="form-select"
+                                            required>
+
+                                        <option value="AVAILABLE">
+                                            Còn trống
+                                        </option>
+
+                                        <option value="RENTED">
+                                            Đã cho thuê
+                                        </option>
+
+                                        <option value="MAINTENANCE">
+                                            Đang bảo trì
+                                        </option>
+
                                     </select>
                                 </div>
 
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">Từ Ngày <span
-                                                class="text-danger">*</span></label>
-                                        <input type="date" name="startDate" class="form-control" required/>
+
+                                <div id="dateFields">
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            Từ ngày <span th:id="'startRequired-' + ${h.id}">*</span>*</span>
+                                        </label>
+
+                                        <input type="date"
+                                               name="startDate"
+                                               th:id="'startDate-' + ${h.id}"
+                                               class="form-control">
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">Đến Ngày <span
-                                                class="text-danger">*</span></label>
-                                        <input type="date" name="endDate" class="form-control" required/>
+
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            Đến ngày <span th:id="'endRequired-' + ${h.id}">*</span>
+                                        </label>
+
+                                        <input type="date"
+                                               name="endDate"
+                                               th:id="'endDate-' + ${h.id}"
+                                               class="form-control">
                                     </div>
+
                                 </div>
-                            </div>
-                            <div class="modal-footer border-0 pt-0">
-                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">
-                                    Hủy
-                                </button>
-                                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
-                                    <i class="fa-solid fa-save me-1"></i> Lưu Trạng Thái
-                                </button>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-light rounded-pill px-4"
+                                            data-bs-dismiss="modal">
+                                        Hủy
+                                    </button>
+                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                        <i class="fa-solid fa-save me-1"></i> Lưu Trạng Thái
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -175,6 +206,65 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
 
+        document.querySelectorAll("[id^='statusSelect-']")
+            .forEach(function (statusSelect) {
+
+                const houseId =
+                    statusSelect.id.replace("statusSelect-", "");
+
+                const startDate =
+                    document.getElementById("startDate-" + houseId);
+
+                const endDate =
+                    document.getElementById("endDate-" + houseId);
+
+                const startRequired =
+                    document.getElementById("startRequired-" + houseId);
+
+                const endRequired =
+                    document.getElementById("endRequired-" + houseId);
+
+
+                function updateDateRequired() {
+
+                    if (statusSelect.value === "MAINTENANCE") {
+
+                        // =====================================
+                        // BẢO TRÌ KHÔNG THỜI HẠN
+                        // =====================================
+
+                        startDate.required = false;
+                        endDate.required = false;
+
+                        startRequired.style.display = "none";
+                        endRequired.style.display = "none";
+
+                    } else {
+
+                        // =====================================
+                        // AVAILABLE / RENTED
+                        // =====================================
+
+                        startDate.required = true;
+                        endDate.required = true;
+
+                        startRequired.style.display = "inline";
+                        endRequired.style.display = "inline";
+                    }
+                }
+
+
+                statusSelect.addEventListener(
+                    "change",
+                    updateDateRequired
+                );
+
+                updateDateRequired();
+            });
+    });
+</script>
 </body>
 </html>

@@ -6,20 +6,18 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import vn.codegym.house_rental.dto.MonthlyIncomeDTO;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.BookingRepository;
 
-import java.util.*;
-
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
-// [CẢI TIẾN]: Bổ sung @Transactional đảm bảo tính toàn vẹn dữ liệu
 @Service
 @Transactional
 public class BookingService {
@@ -27,15 +25,214 @@ public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
 
-    public Page<Booking> findByRenter(User renter, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return bookingRepository.findByRenter(renter, pageable);
+
+    // =========================================================
+    // TẠO BOOKING
+    // =========================================================
+
+    public Booking createBooking(
+            House house,
+            User renter,
+            Booking booking) {
+
+        if (house == null) {
+            throw new IllegalArgumentException(
+                    "Không tìm thấy căn nhà."
+            );
+        }
+
+        if (renter == null) {
+            throw new IllegalArgumentException(
+                    "Người thuê không hợp lệ."
+            );
+        }
+
+        if (booking == null) {
+            throw new IllegalArgumentException(
+                    "Thông tin đặt nhà không hợp lệ."
+            );
+        }
+
+        LocalDate startDate = booking.getStartDate();
+        LocalDate endDate = booking.getEndDate();
+
+        // Kiểm tra ngày
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException(
+                    "Ngày bắt đầu và ngày kết thúc không được để trống."
+            );
+        }
+
+        if (startDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException(
+                    "Ngày bắt đầu thuê không thể ở trong quá khứ."
+            );
+        }
+
+        if (!endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException(
+                    "Ngày kết thúc thuê phải sau ngày bắt đầu thuê."
+            );
+        }
+
+        // Không cho host thuê nhà của chính mình
+        if (house.getHost() != null
+                && house.getHost().getId() != null
+                && renter.getId() != null
+                && house.getHost().getId().equals(renter.getId())) {
+
+            throw new IllegalArgumentException(
+                    "Chủ nhà không thể thuê chính căn nhà do mình đăng."
+            );
+        }
+
+        // Kiểm tra trạng thái nhà
+        if (house.getStatus() == House.HouseStatus.MAINTENANCE) {
+            throw new IllegalArgumentException(
+                    "Căn nhà đang bảo trì, hiện tại không thể đặt."
+            );
+        }
+
+        // Kiểm tra lịch bảo trì
+        if (house.getStatusPeriods() != null) {
+
+            for (var period : house.getStatusPeriods()) {
+
+                if (period.getStatus() == House.HouseStatus.MAINTENANCE
+                        && period.getStartDate() != null
+                        && period.getEndDate() != null) {
+
+                    boolean overlap =
+                            startDate.isBefore(period.getEndDate())
+                                    && endDate.isAfter(period.getStartDate());
+
+                    if (overlap) {
+                        throw new IllegalArgumentException(
+                                "Căn nhà có lịch bảo trì từ "
+                                        + period.getStartDate()
+                                        + " đến "
+                                        + period.getEndDate()
+                                        + "."
+                        );
+                    }
+                }
+            }
+        }
+
+        // =====================================================
+        // KIỂM TRA BOOKING TRÙNG LỊCH
+        //
+        // PENDING
+        // APPROVED
+        // CHECKED_IN
+        // đều khóa lịch
+        // =====================================================
+
+        boolean overlapped =
+                bookingRepository
+                        .existsOverlappingBookingIncludingPending(
+                                house.getId(),
+                                startDate,
+                                endDate
+                        );
+
+        if (overlapped) {
+            throw new IllegalArgumentException(
+                    "Căn nhà này đã có người đặt trong khoảng thời gian bạn chọn."
+            );
+        }
+
+        // Gán dữ liệu
+        booking.setHouse(house);
+        booking.setRenter(renter);
+        booking.setStatus(
+                Booking.BookingStatus.PENDING
+        );
+
+        // =====================================================
+        // TÍNH TIỀN
+        // =====================================================
+
+        long days =
+                ChronoUnit.DAYS.between(
+                        startDate,
+                        endDate
+                );
+
+        if (days <= 0) {
+            days = 1;
+        }
+
+        double dailyRate =
+                house.getDisplayPricePerDay();
+
+        double totalPrice =
+                dailyRate * days;
+
+        totalPrice =
+                Math.round(totalPrice * 100.0) / 100.0;
+
+        booking.setTotalPrice(totalPrice);
+
+        return bookingRepository.save(booking);
     }
 
-    public Page<Booking> findByHost(User host, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return bookingRepository.findByHouse_Host(host, pageable);
+
+    // =========================================================
+    // BOOKING CỦA RENTER
+    // =========================================================
+
+    public Page<Booking> findByRenter(
+            User renter,
+            int page,
+            int size) {
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by("id").descending()
+                );
+
+        return bookingRepository.findByRenter(
+                renter,
+                pageable
+        );
     }
+
+
+    public List<Booking> findByRenter(User renter) {
+
+        return bookingRepository.findByRenter(renter);
+    }
+
+
+    // =========================================================
+    // BOOKING CỦA HOST
+    // =========================================================
+
+    public Page<Booking> findByHost(
+            User host,
+            int page,
+            int size) {
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by("id").descending()
+                );
+
+        return bookingRepository.findByHouse_Host(
+                host,
+                pageable
+        );
+    }
+
+
+    // =========================================================
+    // TÌM KIẾM BOOKING CỦA HOST
+    // =========================================================
 
     public Page<Booking> searchHostBookings(
             User host,
@@ -46,25 +243,16 @@ public class BookingService {
             int page,
             int size) {
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by("id").descending()
-        );
-
-        String keyword = houseName;
-
-        if (keyword != null && keyword.trim().isEmpty()) {
-            keyword = null;
-        }
-
-        if (keyword != null) {
-            keyword = keyword.trim();
-        }
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by("id").descending()
+                );
 
         return bookingRepository.searchHostBookings(
                 host,
-                keyword,
+                houseName,
                 startDate,
                 endDate,
                 status,
@@ -72,187 +260,366 @@ public class BookingService {
         );
     }
 
-    public Optional<Booking> findById(Long id) {
-        return bookingRepository.findById(id);
-    }
 
-    public Booking createBooking(House house, User renter, Booking booking) {
-        // Validate Ngày bắt đầu và Ngày kết thúc hợp lệ
-        if (booking.getStartDate() == null || booking.getEndDate() == null) {
-            throw new IllegalArgumentException("Ngày bắt đầu và ngày kết thúc không được để trống.");
-        }
-        if (booking.getStartDate().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Ngày bắt đầu thuê không thể ở trong quá khứ.");
-        }
-        if (!booking.getEndDate().isAfter(booking.getStartDate())) {
-            throw new IllegalArgumentException("Ngày kết thúc thuê phải sau ngày bắt đầu thuê.");
-        }
+    // =========================================================
+    // HOST PHÊ DUYỆT BOOKING
+    // PENDING -> APPROVED
+    // =========================================================
 
-        // Host không được thuê căn nhà do chính mình đăng
-        if (house.getHost() != null
-                && renter != null
-                && house.getHost().getId().equals(renter.getId())) {
+    public Booking approveBooking(
+            Long bookingId,
+            User host) {
 
-            throw new IllegalArgumentException(
-                    "Chủ nhà không thể thuê chính căn nhà do mình đăng."
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Không tìm thấy đơn thuê."
+                                )
+                        );
+
+        // Kiểm tra quyền host
+        checkHostPermission(booking, host);
+
+        // Chỉ PENDING mới được duyệt
+        if (booking.getStatus()
+                != Booking.BookingStatus.PENDING) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể phê duyệt đơn đang ở trạng thái PENDING."
             );
         }
 
-        // Kiểm tra căn nhà có đang ở trạng thái bảo trì không
-        if (house.getStatus() == House.HouseStatus.MAINTENANCE) {
-            throw new IllegalArgumentException("Căn nhà đang trong thời gian bảo trì, hiện tại không thể đặt phòng.");
+        House house = booking.getHouse();
+
+        // Kiểm tra lại trùng lịch
+        // Chỉ APPROVED + CHECKED_IN được xem là đã chiếm lịch
+        boolean overlapped =
+                bookingRepository.existsOverlappingBooking(
+                        house.getId(),
+                        booking.getStartDate(),
+                        booking.getEndDate()
+                );
+
+        if (overlapped) {
+            throw new IllegalStateException(
+                    "Không thể phê duyệt vì thời gian thuê đã bị trùng với đơn khác."
+            );
         }
 
-        // Kiểm tra lịch bảo trì theo khoảng thời gian
-        if (house.getStatusPeriods() != null) {
-            for (vn.codegym.house_rental.model.HouseStatusPeriod period : house.getStatusPeriods()) {
-                if (period.getStatus() == House.HouseStatus.MAINTENANCE) {
-                    if (booking.getStartDate().isBefore(period.getEndDate()) && booking.getEndDate().isAfter(period.getStartDate())) {
-                        throw new IllegalArgumentException("Căn nhà có lịch bảo trì từ ngày " + period.getStartDate() + " đến ngày " + period.getEndDate() + ".");
-                    }
-                }
-            }
-        }
-
-        // Kiểm tra trùng lịch đã duyệt trong khoảng thời gian này
-        boolean isOverlapped = bookingRepository.existsOverlappingBooking(
-                house.getId(), booking.getStartDate(), booking.getEndDate()
+        booking.setStatus(
+                Booking.BookingStatus.APPROVED
         );
-        if (isOverlapped) {
-            throw new IllegalArgumentException("Căn nhà này đã được đặt trong khoảng thời gian bạn chọn.");
-        }
-
-        booking.setHouse(house);
-        booking.setRenter(renter);
-        booking.setStatus(Booking.BookingStatus.PENDING);
-
-        long days = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate());
-        if (days <= 0) days = 1;
-        double dailyRate = house.getDisplayPricePerDay();
-        double totalPrice = dailyRate * days;
-        booking.setTotalPrice(Math.round(totalPrice * 100.0) / 100.0);
 
         return bookingRepository.save(booking);
     }
 
-    public Booking updateStatus(Long bookingId, Booking.BookingStatus status) {
-        Optional<Booking> optionalBooking = bookingRepository.findById(bookingId);
-        if (optionalBooking.isPresent()) {
-            Booking booking = optionalBooking.get();
-            booking.setStatus(status);
-            bookingRepository.save(booking);
 
-            // Cập nhật trạng thái nhà nếu thích hợp nhưng không xóa bỏ trạng thái khác nếu có đơn approved khác
-            House house = booking.getHouse();
-            if (status == Booking.BookingStatus.APPROVED) {
-                house.setStatus(House.HouseStatus.RENTED);
-            } else if (status == Booking.BookingStatus.REJECTED || status == Booking.BookingStatus.CANCELLED) {
-                boolean hasOtherApproved = bookingRepository.existsOverlappingBooking(house.getId(), LocalDate.now(), LocalDate.now().plusYears(10));
-                if (!hasOtherApproved && house.getStatus() != House.HouseStatus.MAINTENANCE) {
-                    house.setStatus(House.HouseStatus.AVAILABLE);
-                }
-            }
-            return booking;
+    // =========================================================
+    // HOST TỪ CHỐI BOOKING
+    // PENDING -> REJECTED
+    // =========================================================
+
+    public Booking rejectBooking(
+            Long bookingId,
+            User host) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Không tìm thấy đơn thuê."
+                                )
+                        );
+
+        // Kiểm tra quyền host
+        checkHostPermission(booking, host);
+
+        // Chỉ PENDING mới được từ chối
+        if (booking.getStatus()
+                != Booking.BookingStatus.PENDING) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể từ chối đơn đang ở trạng thái PENDING."
+            );
         }
-        throw new RuntimeException("Không tìm thấy đơn đặt nhà ID: " + bookingId);
+
+        booking.setStatus(
+                Booking.BookingStatus.REJECTED
+        );
+
+        return bookingRepository.save(booking);
     }
 
-    // Quy tắc Hủy đơn trước 1 ngày (Allow cancellation for PENDING or APPROVED at least 1 day before startDate)
-    public void cancelBooking(Long bookingId, User renter) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt nhà"));
 
-        if (!booking.getRenter().getId().equals(renter.getId())) {
-            throw new IllegalStateException("Bạn không có quyền hủy đơn đặt nhà này");
+    // =========================================================
+// RENTER HỦY BOOKING
+// =========================================================
+
+    public Booking cancelBooking(
+            Long bookingId,
+            User renter) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Không tìm thấy đơn thuê."
+                                )
+                        );
+
+        // =====================================================
+        // KIỂM TRA ĐÚNG NGƯỜI THUÊ
+        // =====================================================
+
+        if (renter == null
+                || renter.getId() == null
+                || booking.getRenter() == null
+                || booking.getRenter().getId() == null
+                || !booking.getRenter()
+                .getId()
+                .equals(renter.getId())) {
+
+            throw new IllegalStateException(
+                    "Bạn không có quyền hủy đơn thuê này."
+            );
         }
 
-        if (booking.getStatus() == Booking.BookingStatus.CANCELLED || booking.getStatus() == Booking.BookingStatus.REJECTED) {
-            throw new IllegalStateException("Đơn đặt nhà này đã ở trạng thái bị hủy hoặc bị từ chối");
+        // =====================================================
+        // CHỈ PENDING MỚI ĐƯỢC HỦY
+        // =====================================================
+
+        if (booking.getStatus()
+                != Booking.BookingStatus.PENDING) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể hủy đơn đang ở trạng thái PENDING."
+            );
         }
 
-        // Logic kiểm tra 1 ngày trước startDate
+        // =====================================================
+        // KIỂM TRA NGÀY HỦY
+        // =====================================================
+
         LocalDate today = LocalDate.now();
-        if (booking.getStatus() == Booking.BookingStatus.APPROVED) {
-            if (!today.isBefore(booking.getStartDate())) {
-                throw new IllegalStateException("Bạn chỉ có thể hủy đơn thuê nhà trước ngày bắt đầu thuê (ngày nhận phòng) tối thiểu 1 ngày.");
-            }
+
+        LocalDate startDate =
+                booking.getStartDate();
+
+        if (startDate == null) {
+
+            throw new IllegalStateException(
+                    "Đơn thuê chưa có ngày nhận phòng."
+            );
         }
 
-        booking.setStatus(Booking.BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        long daysUntilCheckIn =
+                ChronoUnit.DAYS.between(
+                        today,
+                        startDate
+                );
+
+        /*
+         * Quy tắc:
+         *
+         * Còn 0 ngày  -> KHÔNG được hủy
+         * Còn 1 ngày  -> KHÔNG được hủy
+         * Còn 2 ngày  -> ĐƯỢC hủy
+         * Còn 3 ngày  -> ĐƯỢC hủy
+         */
+
+        if (daysUntilCheckIn < 1) {
+
+            throw new IllegalStateException(
+                    "Không thể hủy vì đã đến ngày nhận phòng."
+            );
+        }
+
+        // =====================================================
+        // HỦY BOOKING
+        // =====================================================
+
+        booking.setStatus(
+                Booking.BookingStatus.CANCELLED
+        );
+
+        return bookingRepository.save(booking);
+    }
+
+
+    // =========================================================
+    // CHECK-IN
+    // APPROVED -> CHECKED_IN
+    // =========================================================
+
+    public Booking checkIn(
+            Long bookingId,
+            User host) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Không tìm thấy đơn thuê."
+                                )
+                        );
+
+        checkHostPermission(booking, host);
+
+        if (booking.getStatus()
+                != Booking.BookingStatus.APPROVED) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể check-in đơn đã được phê duyệt."
+            );
+        }
+
+        booking.setStatus(
+                Booking.BookingStatus.CHECKED_IN
+        );
 
         House house = booking.getHouse();
-        boolean hasOtherApproved = bookingRepository.existsOverlappingBooking(house.getId(), LocalDate.now(), LocalDate.now().plusYears(10));
-        if (!hasOtherApproved && house.getStatus() != House.HouseStatus.MAINTENANCE) {
-            house.setStatus(House.HouseStatus.AVAILABLE);
+
+        if (house != null) {
+            house.setStatus(
+                    House.HouseStatus.RENTED
+            );
+        }
+
+        return bookingRepository.save(booking);
+    }
+
+
+    // =========================================================
+    // CHECK-OUT
+    // CHECKED_IN -> CHECKED_OUT
+    // =========================================================
+
+    public Booking checkOut(
+            Long bookingId,
+            User host) {
+
+        Booking booking =
+                bookingRepository.findById(bookingId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Không tìm thấy đơn thuê."
+                                )
+                        );
+
+        checkHostPermission(booking, host);
+
+        if (booking.getStatus()
+                != Booking.BookingStatus.CHECKED_IN) {
+
+            throw new IllegalStateException(
+                    "Chỉ có thể check-out đơn đang CHECKED_IN."
+            );
+        }
+
+        booking.setStatus(
+                Booking.BookingStatus.CHECKED_OUT
+        );
+
+        House house = booking.getHouse();
+
+        if (house != null) {
+            house.setStatus(
+                    House.HouseStatus.AVAILABLE
+            );
+        }
+
+        return bookingRepository.save(booking);
+    }
+
+
+    // =========================================================
+    // KIỂM TRA QUYỀN HOST
+    // =========================================================
+
+    private void checkHostPermission(
+            Booking booking,
+            User host) {
+
+        if (host == null
+                || host.getId() == null
+                || booking.getHouse() == null
+                || booking.getHouse().getHost() == null
+                || booking.getHouse().getHost().getId() == null
+                || !booking.getHouse()
+                .getHost()
+                .getId()
+                .equals(host.getId())) {
+
+            throw new IllegalStateException(
+                    "Bạn không có quyền thực hiện thao tác này."
+            );
         }
     }
 
-    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(Long hostId, int year) {
-        List<MonthlyIncomeDTO> result =
-                bookingRepository.getMonthlyIncomeByHostAndYear(hostId, year);
 
-        Map<Integer, Double> monthly = new HashMap<>();
-        Map<Integer, Long> bookingCounts = new HashMap<>();
+    // =========================================================
+    // DOANH THU HOST
+    // =========================================================
 
-        for (int i = 1; i <= 12; i++) {
-            monthly.put(i, 0.0);
-            bookingCounts.put(i, 0L);
-        }
+    public Double getRevenue(User host) {
 
-        for (MonthlyIncomeDTO dto : result) {
-            monthly.put(dto.getMonth(),
-                    dto.getIncome() != null ? dto.getIncome() : 0.0);
+        Double revenue =
+                bookingRepository.getRevenue(host);
 
-            bookingCounts.put(dto.getMonth(),
-                    dto.getBookingCount() != null ? dto.getBookingCount() : 0L);
-        }
-
-        List<MonthlyIncomeDTO> finalResult = new ArrayList<>();
-
-        for (int i = 1; i <= 12; i++) {
-            Double income = monthly.get(i);
-            Long bookingCount = bookingCounts.get(i);
-
-            MonthlyIncomeDTO dto =
-                    new MonthlyIncomeDTO(i, income, bookingCount);
-
-            finalResult.add(dto);
-        }
-
-        return finalResult;
-    }
-    public void checkIn(Long bookingId, User currentHost){
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));
-
-        if(!booking.getHouse().getHost().getId().equals(currentHost.getId())){
-            throw new RuntimeException("Bạn không có quyền thực hiện check-in cho căn nhà này.");
-        }
-
-        if(!booking.getStatus().equals(Booking.BookingStatus.APPROVED)){
-            throw new IllegalStateException("Chỉ có thể check-in đối với những đơn đặt phòng đã được phê duyệt");
-        }
-
-        booking.getHouse().setStatus(House.HouseStatus.RENTED);
-        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
-        bookingRepository.save(booking);
+        return revenue != null
+                ? revenue
+                : 0.0;
     }
 
-    public void checkOut(Long bookingId, User currentHost){
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id : " + bookingId));
-        if(!booking.getHouse().getHost().getId().equals(currentHost.getId())){
-            throw new RuntimeException("Bạn không có quyền thực hiện check-in cho căn nhà này.");
-        }
 
-        if(!booking.getStatus().equals(Booking.BookingStatus.CHECKED_IN)){
-            throw new IllegalStateException("Bạn chưa check in căn nhà này.");
-        }
+    // =========================================================
+    // TỔNG TIỀN RENTER ĐÃ CHI
+    // =========================================================
 
-        booking.setStatus(Booking.BookingStatus.CHECKED_OUT);
-        booking.getHouse().setStatus(House.HouseStatus.AVAILABLE);
-        bookingRepository.save(booking);
+    public Double getTotalSpent(User renter) {
+
+        Double total =
+                bookingRepository.getTotalSpent(renter);
+
+        return total != null
+                ? total
+                : 0.0;
     }
 
+
+    // =========================================================
+    // DOANH THU THEO THÁNG
+    // =========================================================
+
+    public List<MonthlyIncomeDTO> getReviewMonthlyIncome(
+            Long hostId,
+            int year) {
+
+        return bookingRepository
+                .getMonthlyIncomeByHostAndYear(
+                        hostId,
+                        year
+                );
+    }
+
+
+    // =========================================================
+    // ĐẾM BOOKING HOST
+    // =========================================================
+
+    public long countByHost(User host) {
+
+        return bookingRepository.countByHouse_Host(host);
+    }
+
+
+    // =========================================================
+    // ĐẾM BOOKING RENTER
+    // =========================================================
+
+    public long countByRenter(User renter) {
+
+        return bookingRepository.countByRenter(renter);
+    }
 }

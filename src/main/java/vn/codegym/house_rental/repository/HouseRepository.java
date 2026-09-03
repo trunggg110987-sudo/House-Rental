@@ -34,7 +34,7 @@ public interface HouseRepository extends JpaRepository<House, Long> {
     );
 
     @Query("SELECT h FROM House h WHERE " +
-           "h.status = vn.codegym.house_rental.model.House.HouseStatus.AVAILABLE AND " +
+           "h.status <> vn.codegym.house_rental.model.House.HouseStatus.MAINTENANCE AND " +
            "(:keyword IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(h.address) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
            "(:categoryId IS NULL OR h.category.id = :categoryId) AND " +
            "(:minPrice IS NULL OR COALESCE(h.pricePerDay, h.pricePerMonth / 30.0) >= :minPrice) AND " +

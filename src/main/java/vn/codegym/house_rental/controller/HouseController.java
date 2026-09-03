@@ -15,6 +15,7 @@ import vn.codegym.house_rental.service.CategoryService;
 import vn.codegym.house_rental.service.FileStorageService;
 import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
+import vn.codegym.house_rental.service.HouseStatusPeriodService;
 
 import jakarta.validation.Valid;
 
@@ -41,6 +42,9 @@ public class HouseController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private HouseStatusPeriodService houseStatusPeriodService;
 
     // Xem chi tiết nhà cho thuê
     @GetMapping("/{id}")
@@ -356,34 +360,74 @@ public class HouseController {
 
     // Endpoint cập nhật trạng thái nhà theo giai đoạn thời gian (Task 29)
     @PostMapping("/{id}/status-period")
-    public String updateStatusPeriod(@PathVariable("id") Long id,
-                                    @RequestParam("status") House.HouseStatus status,
-                                    @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-                                    @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-                                    HttpSession session,
-                                    RedirectAttributes redirectAttributes) {
+    public String addStatusPeriod(
+            @PathVariable Long id,
+            @RequestParam("status") House.HouseStatus status,
+            @RequestParam(value = "startDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
+            )
+            LocalDate startDate,
 
-        User currentUser = (User) session.getAttribute("currentUser");
+            @RequestParam(value = "endDate", required = false)
+            @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE
+            )
+            LocalDate endDate,
+
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser =
+                (User) session.getAttribute("currentUser");
+
         if (currentUser == null) {
             return "redirect:/login";
         }
 
-        Optional<House> houseOptional = houseService.findById(id);
-        if (houseOptional.isEmpty() || !houseOptional.get().getHost().getId().equals(currentUser.getId())) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy căn nhà hoặc bạn không có quyền.");
-            return "redirect:/houses/my-houses";
-        }
-
         try {
-            houseService.addStatusPeriod(houseOptional.get(), status, startDate, endDate);
-            redirectAttributes.addFlashAttribute("successMessage", "Cập nhật trạng thái nhà theo giai đoạn thời gian thành công!");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+
+            House house =
+                    houseService.findById(id)
+                            .orElseThrow(() ->
+                                    new IllegalArgumentException(
+                                            "Không tìm thấy căn nhà."
+                                    )
+                            );
+
+            // Kiểm tra đúng chủ nhà
+            if (house.getHost() == null
+                    || house.getHost().getId() == null
+                    || !house.getHost().getId()
+                    .equals(currentUser.getId())) {
+
+                throw new IllegalStateException(
+                        "Bạn không có quyền cập nhật trạng thái căn nhà này."
+                );
+            }
+
+            houseService.addStatusPeriod(
+                    house,
+                    status,
+                    startDate,
+                    endDate
+            );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Đã cập nhật trạng thái căn nhà thành công."
+            );
+
+        } catch (Exception e) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
         }
 
         return "redirect:/houses/my-houses";
     }
-
     // Endpoint Xóa nhà cho thuê
     @PostMapping("/{id}/delete")
     public String deleteHouse(@PathVariable("id") Long id, HttpSession session, RedirectAttributes redirectAttributes) {

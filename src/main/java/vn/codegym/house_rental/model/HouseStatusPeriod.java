@@ -2,6 +2,7 @@ package vn.codegym.house_rental.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 
 @Entity
@@ -17,17 +18,17 @@ public class HouseStatusPeriod {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "house_id", nullable = false)
-    private House house;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private House.HouseStatus status;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDate startDate;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDate endDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "house_id", nullable = false)
+    private House house;
 }
