@@ -46,9 +46,13 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // Kiểm tra quyền Host đối với thao tác đăng nhà, sửa nhà, xóa nhà, cập nhật bảo trì và duyệt đặt phòng
+        // Kiểm tra quyền Host đối với thao tác của chủ nhà
         boolean isHostAction = uri.startsWith("/houses/create") ||
                 uri.startsWith("/bookings/host-requests") ||
+                uri.startsWith("/bookings/host-bookings") ||
+                uri.startsWith("/bookings/host-reviews") ||
+                uri.startsWith("/bookings/reviews/") ||
+                uri.startsWith("/bookings/income-statistics") ||
                 uri.matches("^/houses/\\d+/(edit|delete|status-period).*");
 
         if (isHostAction && currentUser.getRole() != User.Role.ROLE_HOST && currentUser.getRole() != User.Role.ROLE_ADMIN) {

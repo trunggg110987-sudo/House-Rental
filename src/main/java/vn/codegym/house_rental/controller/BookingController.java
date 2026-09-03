@@ -648,4 +648,52 @@ public class BookingController {
 
         return "booking/host_reviews";
     }
+
+    // =========================================================
+    // HOST ẨN NHẬN XÉT (Task 44)
+    // =========================================================
+    @PostMapping("/reviews/{id}/hide")
+    public String hideReview(
+            @PathVariable("id") Long id,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            reviewService.hideReview(id, currentUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã ẩn nhận xét thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/bookings/host-reviews";
+    }
+
+    // =========================================================
+    // HOST BỎ ẨN NHẬN XÉT
+    // =========================================================
+    @PostMapping("/reviews/{id}/unhide")
+    public String unhideReview(
+            @PathVariable("id") Long id,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            reviewService.unhideReview(id, currentUser);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã bỏ ẩn nhận xét thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/bookings/host-reviews";
+    }
 }

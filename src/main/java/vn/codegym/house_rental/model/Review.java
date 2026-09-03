@@ -26,4 +26,12 @@ public class Review {
     private House house;
 
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean hidden = false;
+
+    public boolean isHidden() {
+        return Boolean.TRUE.equals(hidden);
+    }
 }

@@ -28,7 +28,7 @@ public class Booking {
     private Double totalPrice;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private BookingStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)

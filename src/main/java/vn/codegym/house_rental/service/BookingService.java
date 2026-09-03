@@ -16,7 +16,10 @@ import vn.codegym.house_rental.repository.BookingRepository;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -606,11 +609,35 @@ public class BookingService {
             Long hostId,
             int year) {
 
-        return bookingRepository
-                .getMonthlyIncomeByHostAndYear(
+        List<MonthlyIncomeDTO> dbResults =
+                bookingRepository.getMonthlyIncomeByHostAndYear(
                         hostId,
                         year
                 );
+
+        Map<Integer, Double> monthlyIncomeMap = new HashMap<>();
+        Map<Integer, Long> monthlyCountMap = new HashMap<>();
+
+        for (int i = 1; i <= 12; i++) {
+            monthlyIncomeMap.put(i, 0.0);
+            monthlyCountMap.put(i, 0L);
+        }
+
+        if (dbResults != null) {
+            for (MonthlyIncomeDTO dto : dbResults) {
+                if (dto.getMonth() >= 1 && dto.getMonth() <= 12) {
+                    monthlyIncomeMap.put(dto.getMonth(), dto.getIncome() != null ? dto.getIncome() : 0.0);
+                    monthlyCountMap.put(dto.getMonth(), dto.getBookingCount() != null ? dto.getBookingCount() : 0L);
+                }
+            }
+        }
+
+        List<MonthlyIncomeDTO> fullYearResults = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            fullYearResults.add(new MonthlyIncomeDTO(i, monthlyIncomeMap.get(i), monthlyCountMap.get(i)));
+        }
+
+        return fullYearResults;
     }
 
 

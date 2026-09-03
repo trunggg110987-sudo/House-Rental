@@ -92,6 +92,16 @@
                                 Đã phê duyệt
                             </option>
 
+                            <option value="CHECKED_IN"
+                                    th:selected="${status != null and status.name() == 'CHECKED_IN'}">
+                                Đang ở
+                            </option>
+
+                            <option value="CHECKED_OUT"
+                                    th:selected="${status != null and status.name() == 'CHECKED_OUT'}">
+                                Đã trả phòng
+                            </option>
+
                             <option value="REJECTED"
                                     th:selected="${status != null and status.name() == 'REJECTED'}">
                                 Đã từ chối

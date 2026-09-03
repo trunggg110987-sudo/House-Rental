@@ -3,6 +3,7 @@ package vn.codegym.house_rental.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import vn.codegym.house_rental.model.Review;
+import vn.codegym.house_rental.model.User;
 import vn.codegym.house_rental.repository.ReviewRepository;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,32 @@ public class ReviewService {
 
     public List<Review> getReviewsByHost(Long hostId) {
         return reviewRepository.findReviewsByHostId(hostId);
+    }
+
+    public void hideReview(Long reviewId, User host) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhận xét."));
+
+        if (review.getHouse() == null || review.getHouse().getHost() == null
+                || !review.getHouse().getHost().getId().equals(host.getId())) {
+            throw new IllegalStateException("Bạn không có quyền ẩn nhận xét này.");
+        }
+
+        review.setHidden(true);
+        reviewRepository.save(review);
+    }
+
+    public void unhideReview(Long reviewId, User host) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhận xét."));
+
+        if (review.getHouse() == null || review.getHouse().getHost() == null
+                || !review.getHouse().getHost().getId().equals(host.getId())) {
+            throw new IllegalStateException("Bạn không có quyền thao tác trên nhận xét này.");
+        }
+
+        review.setHidden(false);
+        reviewRepository.save(review);
     }
 
     public double getAverageRating(List<Review> reviews) {

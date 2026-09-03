@@ -128,10 +128,35 @@
                                         </a>
                                     </small>
                                 </div>
-                                <span class="text-muted small" 
-                                      th:text="${#temporals.format(review.createdAt, 'dd/MM/yyyy HH:mm')}">
-                                    Ngày tạo
-                                </span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted small" 
+                                          th:text="${#temporals.format(review.createdAt, 'dd/MM/yyyy HH:mm')}">
+                                        Ngày tạo
+                                    </span>
+
+                                    <!-- Huy hiệu Đã ẩn nếu hidden = true -->
+                                    <span th:if="${review.hidden}" class="badge bg-secondary rounded-pill px-3 py-2">
+                                        <i class="fa-solid fa-eye-slash me-1"></i> Đã ẩn
+                                    </span>
+
+                                    <!-- Nút Ẩn nếu chưa ẩn -->
+                                    <button th:if="${!review.hidden}" 
+                                            type="button" 
+                                            class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold"
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#hideModal-' + ${review.id}">
+                                        <i class="fa-solid fa-eye-slash me-1"></i> Ẩn
+                                    </button>
+
+                                    <!-- Nút Hiện lại nếu đã ẩn -->
+                                    <button th:if="${review.hidden}" 
+                                            type="button" 
+                                            class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold"
+                                            data-bs-toggle="modal" 
+                                            th:data-bs-target="'#unhideModal-' + ${review.id}">
+                                        <i class="fa-solid fa-eye me-1"></i> Hiện lại
+                                    </button>
+                                </div>
                             </div>
                             
                             <!-- Hiển thị sao của từng Review -->
@@ -144,8 +169,70 @@
                             
                             <!-- Ý kiến bình luận -->
                             <div class="p-3 bg-light rounded-3 text-dark mb-0 fs-6 border-start border-warning border-3" 
+                                 th:classappend="${review.hidden} ? 'opacity-75 border-secondary' : 'border-warning'"
                                  th:text="${review.comment}">
-                                Nội dung bình luận ở đây.
+                                 Nội dung bình luận ở đây.
+                            </div>
+
+                            <!-- Popup Modal xác nhận ẩn nhận xét -->
+                            <div class="modal fade" th:id="'hideModal-' + ${review.id}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 border-0 shadow">
+                                        <div class="modal-header border-0 pb-0">
+                                            <h5 class="modal-title fw-bold text-danger">
+                                                <i class="fa-solid fa-triangle-exclamation me-2"></i>Xác nhận ẩn nhận xét
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                        </div>
+                                        <div class="modal-body py-3">
+                                            <p class="mb-2">Bạn có chắc chắn muốn ẩn nhận xét này không?</p>
+                                            <div class="p-3 bg-light rounded-3 text-muted small border">
+                                                <strong class="text-dark" th:text="${review.renter != null ? review.renter.fullName : 'Khách hàng'}">Người thuê</strong>: 
+                                                <span class="fst-italic" th:text="${review.comment}">Nội dung</span>
+                                            </div>
+                                            <p class="text-muted small mt-2 mb-0">
+                                                <i class="fa-solid fa-circle-info me-1"></i>Nhận xét sau khi ẩn sẽ không còn hiển thị công khai trên trang thông tin của căn nhà.
+                                            </p>
+                                        </div>
+                                        <div class="modal-footer border-0 pt-0">
+                                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                                            <form th:action="@{'/bookings/reviews/' + ${review.id} + '/hide'}" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                                                    <i class="fa-solid fa-eye-slash me-1"></i> Xác nhận ẩn
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Popup Modal xác nhận hiện lại nhận xét -->
+                            <div class="modal fade" th:id="'unhideModal-' + ${review.id}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 border-0 shadow">
+                                        <div class="modal-header border-0 pb-0">
+                                            <h5 class="modal-title fw-bold text-success">
+                                                <i class="fa-solid fa-circle-check me-2"></i>Xác nhận hiện lại nhận xét
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                        </div>
+                                        <div class="modal-body py-3">
+                                            <p class="mb-2">Bạn có muốn cho phép nhận xét này hiển thị công khai trở lại?</p>
+                                            <div class="p-3 bg-light rounded-3 text-muted small border">
+                                                <strong class="text-dark" th:text="${review.renter != null ? review.renter.fullName : 'Khách hàng'}">Người thuê</strong>: 
+                                                <span class="fst-italic" th:text="${review.comment}">Nội dung</span>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-0 pt-0">
+                                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                                            <form th:action="@{'/bookings/reviews/' + ${review.id} + '/unhide'}" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold text-white">
+                                                    <i class="fa-solid fa-eye me-1"></i> Hiện lại nhận xét
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
