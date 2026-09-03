@@ -227,4 +227,6 @@ public interface BookingRepository
             @Param("status") Booking.BookingStatus status,
             Pageable pageable
     );
+
+    boolean existsByHouseIdAndRenterIdAndStatus(Long houseId, Long renterId, Booking.BookingStatus status);
 }

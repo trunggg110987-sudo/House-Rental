@@ -65,10 +65,114 @@
                         </form>
                         <span th:if="${b.status.name() == 'APPROVED' and not T(java.time.LocalDate).now().isBefore(b.startDate)}"
                               class="text-muted small fst-italic">Không thể hủy</span>
+
+                        <!-- Đánh giá nhà khi đơn ở trạng thái "Đã trả phòng" (Task 45) -->
+                        <div th:if="${b.status.name() == 'CHECKED_OUT'}">
+                            <!-- Chưa đánh giá -->
+                            <button th:if="${bookingReviews == null or !bookingReviews.containsKey(b.id)}" 
+                                    type="button" 
+                                    class="btn btn-outline-warning btn-sm rounded-pill text-dark fw-semibold"
+                                    data-bs-toggle="modal" 
+                                    th:data-bs-target="'#rateModal-' + ${b.id}">
+                                <i class="fa-solid fa-star text-warning me-1"></i> Đánh giá
+                            </button>
+
+                            <!-- Đã đánh giá -->
+                            <div th:if="${bookingReviews != null and bookingReviews.containsKey(b.id)}" class="d-flex align-items-center gap-1">
+                                <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-2 py-1 fw-semibold">
+                                    <i class="fa-solid fa-star text-warning me-1"></i>
+                                    <span th:text="${bookingReviews.get(b.id).rating + '/5 sao'}">5/5 sao</span>
+                                </span>
+                                <button type="button" 
+                                        class="btn btn-outline-secondary btn-sm rounded-circle p-1 d-inline-flex align-items-center justify-content-center"
+                                        style="width: 26px; height: 26px;"
+                                        data-bs-toggle="modal" 
+                                        th:data-bs-target="'#rateModal-' + ${b.id}"
+                                        title="Chỉnh sửa số sao">
+                                    <i class="fa-solid fa-pen" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+
+                            <!-- Popup Modal Đánh Giá (1 => 5 sao) -->
+                            <div class="modal fade" th:id="'rateModal-' + ${b.id}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 border-0 shadow">
+                                        <div class="modal-header border-0 pb-0">
+                                            <h5 class="modal-title fw-bold text-dark">
+                                                <i class="fa-solid fa-star text-warning me-2"></i>Đánh giá căn nhà
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                                        </div>
+                                        <form th:action="@{'/bookings/' + ${b.id} + '/rate'}" method="post">
+                                            <div class="modal-body py-3">
+                                                <div class="p-3 bg-light rounded-3 mb-3 border">
+                                                    <h6 class="fw-bold text-dark mb-1" th:text="${b.house.name}">Tên căn nhà</h6>
+                                                    <div class="text-muted small">
+                                                        <i class="fa-solid fa-calendar-days me-1"></i>
+                                                        Thời gian thuê: 
+                                                        <span th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(b.endDate, 'dd/MM/yyyy')}"></span>
+                                                    </div>
+                                                </div>
+
+                                                <label class="form-label fw-bold text-secondary mb-2">
+                                                    Chọn mức đánh giá (từ 1 đến 5 sao):
+                                                </label>
+                                                
+                                                <div class="d-flex justify-content-center gap-2 py-2">
+                                                    <div th:each="star : ${#numbers.sequence(1, 5)}" class="text-center flex-grow-1">
+                                                        <input type="radio" 
+                                                               class="btn-check" 
+                                                               th:name="rating" 
+                                                               th:id="'star-' + ${star} + '-' + ${b.id}" 
+                                                               th:value="${star}"
+                                                               th:checked="${bookingReviews != null and bookingReviews.containsKey(b.id) ? bookingReviews.get(b.id).rating == star : star == 5}" 
+                                                               required>
+                                                        <label class="btn btn-outline-warning text-dark w-100 py-2 rounded-3 d-flex flex-column align-items-center" 
+                                                               th:for="'star-' + ${star} + '-' + ${b.id}">
+                                                            <span class="fs-5 text-warning"><i class="fa-solid fa-star"></i></span>
+                                                            <span class="small fw-bold mt-1" th:text="${star + ' sao'}">1 sao</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted text-center d-block mt-2">
+                                                    <i class="fa-solid fa-circle-check text-success me-1"></i>
+                                                    Đánh giá của bạn giúp cộng đồng có cái nhìn chính xác về chất lượng ngôi nhà.
+                                                </small>
+                                            </div>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                                                <button type="submit" class="btn btn-warning text-dark fw-bold rounded-pill px-4">
+                                                    <i class="fa-solid fa-paper-plane me-1"></i> Lưu đánh giá
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                 </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Phân trang nếu có nhiều trang -->
+        <div class="card-footer bg-white border-0 py-3" th:if="${totalPages > 1}">
+            <nav aria-label="Phân trang đơn thuê">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link rounded-pill px-3 me-2" th:href="@{/bookings/my-bookings(page=${currentPage - 1})}">Trước</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}" th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link rounded-circle mx-1 d-flex align-items-center justify-content-center" 
+                           style="width: 38px; height: 38px;"
+                           th:href="@{/bookings/my-bookings(page=${i})}" th:text="${i + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                        <a class="page-link rounded-pill px-3 ms-2" th:href="@{/bookings/my-bookings(page=${currentPage + 1})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 </div>

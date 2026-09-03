@@ -151,6 +151,13 @@ public class BookingController {
                 bookingPage.getTotalPages()
         );
 
+        Map<Long, Review> bookingReviews =
+                reviewService.getReviewsMapByRenter(currentUser);
+
+        model.addAttribute(
+                "bookingReviews",
+                bookingReviews
+        );
 
         return "booking/my_bookings";
     }
@@ -695,5 +702,36 @@ public class BookingController {
         }
 
         return "redirect:/bookings/host-reviews";
+    }
+
+    // =========================================================
+    // RENTER ĐÁNH GIÁ NHÀ (Task 45)
+    // =========================================================
+    @PostMapping("/{id}/rate")
+    public String rateBooking(
+            @PathVariable("id") Long bookingId,
+            @RequestParam("rating") Integer rating,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            reviewService.rateBooking(bookingId, rating, currentUser);
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Đánh giá căn nhà thành công! Cảm ơn bạn đã đánh giá dịch vụ."
+            );
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    e.getMessage()
+            );
+        }
+
+        return "redirect:/bookings/my-bookings";
     }
 }

@@ -25,6 +25,10 @@ public class Review {
     @ManyToOne(fetch = FetchType.LAZY)
     private House house;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
+
     private LocalDateTime createdAt;
 
     @Builder.Default
