@@ -179,7 +179,23 @@ public class BookingService {
 
         booking.setTotalPrice(totalPrice);
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // gui thong bao khi co khach thue
+        if (house != null && house.getHost() != null) {
+            String renterName = (renter != null && renter.getFullName() != null && !renter.getFullName().isBlank())
+                    ? renter.getFullName()
+                    : "Khách thuê";
+            String houseName = (house.getName() != null && !house.getName().isBlank())
+                    ? house.getName()
+                    : "căn nhà";
+            String bookDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String title = "Khách đặt thuê nhà";
+            String content = renterName + " đã đặt thuê " + houseName + " vào ngày " + bookDate;
+            notificationService.sendNotification(house.getHost(), title, content);
+        }
+
+        return savedBooking;
     }
 
 

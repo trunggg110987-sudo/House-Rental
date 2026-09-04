@@ -13,7 +13,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -27,6 +29,9 @@ public class ReviewService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public List<Review> getReviewsByHost(Long hostId) {
         return reviewRepository.findReviewsByHostId(hostId);
@@ -78,7 +83,24 @@ public class ReviewService {
             review.setComment(trimmedComment);
         }
 
-        return reviewRepository.save(review);
+        Review savedReview = reviewRepository.save(review);
+
+        // chu nha nhan thong bao khi co khach danh gia
+        House house = savedReview.getHouse();
+        if (house != null && house.getHost() != null) {
+            String renterName = (renter != null && renter.getFullName() != null && !renter.getFullName().isBlank())
+                    ? renter.getFullName()
+                    : "Khách thuê";
+            String houseName = (house.getName() != null && !house.getName().isBlank())
+                    ? house.getName()
+                    : "căn nhà";
+            String reviewDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String title = "Khách nhận xét căn nhà";
+            String content = renterName + " đã nhận xét " + houseName + " vào ngày " + reviewDate;
+            notificationService.sendNotification(house.getHost(), title, content);
+        }
+
+        return savedReview;
     }
 
     public Review rateBooking(Long bookingId, Integer rating, User renter) {
@@ -219,6 +241,22 @@ public class ReviewService {
                     .build();
         }
 
-        return reviewRepository.save(review);
+        Review savedReview = reviewRepository.save(review);
+
+        // Gửi thông báo cho Chủ nhà khi có khách nhận xét (Task 50)
+        if (house != null && house.getHost() != null) {
+            String renterName = (renter != null && renter.getFullName() != null && !renter.getFullName().isBlank())
+                    ? renter.getFullName()
+                    : "Khách thuê";
+            String houseName = (house.getName() != null && !house.getName().isBlank())
+                    ? house.getName()
+                    : "căn nhà";
+            String commentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String title = "Khách nhận xét căn nhà";
+            String content = renterName + " đã nhận xét " + houseName + " vào ngày " + commentDate;
+            notificationService.sendNotification(house.getHost(), title, content);
+        }
+
+        return savedReview;
     }
 }
