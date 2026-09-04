@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: mainLayout('Tin Nhắn Của Khách', ~{::div.main-content})}">
+<body>
+
+<div class="main-content container py-4">
+
+    <!-- Header điều hướng -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold mb-1 text-primary">
+                <i class="fa-solid fa-comments me-2"></i>Tin Nhắn Của Khách
+            </h3>
+            <p class="text-muted mb-0">Quản lý và phản hồi tin nhắn tư vấn từ khách hàng thuê nhà</p>
+        </div>
+        <div>
+            <a th:href="@{/houses/my-houses}" class="btn btn-outline-secondary rounded-pill px-3 fw-semibold">
+                <i class="fa-solid fa-house me-1"></i> Danh sách nhà của tôi
+            </a>
+        </div>
+    </div>
+
+    <!-- Thông báo nếu chưa có nhà nào -->
+    <div th:if="${#lists.isEmpty(myHouses)}" class="card border-0 rounded-4 shadow-sm p-5 text-center">
+        <i class="fa-regular fa-folder-open text-muted fs-1 mb-3"></i>
+        <h5 class="fw-bold">Bạn chưa đăng căn nhà nào</h5>
+        <p class="text-muted">Hãy đăng tin cho thuê nhà để bắt đầu nhận tin nhắn từ khách.</p>
+        <div>
+            <a th:href="@{/houses/create}" class="btn btn-primary rounded-pill px-4">
+                <i class="fa-solid fa-plus-circle me-1"></i> Đăng Tin Cho Thuê
+            </a>
+        </div>
+    </div>
+
+    <!-- Giao diện hộp thư -->
+    <div th:if="${!#lists.isEmpty(myHouses)}" class="card border-0 rounded-4 shadow-sm overflow-hidden">
+        <div class="row g-0" style="min-height: 580px;">
+
+            <!-- Cột trái: Chọn nhà & Danh sách khách -->
+            <div class="col-lg-4 border-end bg-light d-flex flex-column">
+                <!-- Chọn căn nhà -->
+                <div class="p-3 border-bottom bg-white">
+                    <label class="form-label small fw-bold text-muted mb-1">
+                        <i class="fa-solid fa-house-chimney me-1 text-primary"></i>Chọn căn nhà:
+                    </label>
+                    <select id="house-selector" class="form-select rounded-pill" onchange="onHouseChange(this.value)">
+                        <option th:each="h : ${myHouses}"
+                                th:value="${h.id}"
+                                th:text="${h.name}"
+                                th:selected="${h.id == selectedHouseId}">
+                            Tên nhà
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Danh sách khách nhắn tin -->
+                <div class="p-2 border-bottom bg-white d-flex align-items-center justify-content-between">
+                    <span class="small fw-bold text-secondary text-uppercase ps-2">Khách hàng</span>
+                    <span id="partners-total-count" class="badge bg-primary rounded-pill">0</span>
+                </div>
+                <div id="partners-list-container" class="flex-grow-1 overflow-y-auto" style="max-height: 480px;">
+                    <!-- Danh sách nạp động bằng JS -->
+                    <div class="text-center text-muted p-4 small" id="partners-loading">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <div>Đang tải danh sách khách...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Khung hội thoại & Phản hồi -->
+            <div class="col-lg-8 d-flex flex-column bg-white">
+                <!-- Tiêu đề cuộc trò chuyện -->
+                <div id="chat-active-header" class="p-3 border-bottom d-flex align-items-center justify-content-between bg-white">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                             style="width: 44px; height: 44px; font-size: 1.1rem;">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div>
+                            <h6 id="active-guest-name" class="fw-bold mb-0">Chưa chọn khách</h6>
+                            <small id="active-house-name" class="text-muted">Chọn một khách từ danh sách bên trái để bắt đầu trò chuyện</small>
+                        </div>
+                    </div>
+                    <a id="btn-view-house" href="#" class="btn btn-sm btn-outline-primary rounded-pill px-3" target="_blank" style="display: none;">
+                        <i class="fa-solid fa-eye me-1"></i> Xem căn nhà
+                    </a>
+                </div>
+
+                <!-- Vùng hiển thị tin nhắn -->
+                <div id="chat-messages-box" class="flex-grow-1 p-3 overflow-y-auto d-flex flex-column gap-2" style="background-color: #f8f9fa; max-height: 420px; min-height: 380px;">
+                    <div class="text-center text-muted my-auto" id="no-chat-selected">
+                        <i class="fa-regular fa-comments fs-1 mb-2 opacity-50 d-block"></i>
+                        Vui lòng chọn khách hàng để xem nội dung tin nhắn.
+                    </div>
+                </div>
+
+                <!-- Ô nhập và gửi tin nhắn -->
+                <div class="p-3 border-top bg-white">
+                    <form id="host-reply-form" onsubmit="handleHostSendMessage(event)" class="d-flex align-items-center gap-2 mb-0">
+                        <input type="text"
+                               id="host-input-message"
+                               class="form-control rounded-pill px-3 py-2"
+                               placeholder="Nhập nội dung phản hồi cho khách..."
+                               autocomplete="off"
+                               maxlength="1000"
+                               disabled
+                               required>
+                        <button type="submit"
+                                id="btn-host-send"
+                                class="btn btn-primary rounded-pill px-4 py-2 fw-semibold d-flex align-items-center gap-2"
+                                disabled>
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Gửi</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Client Script -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        let currentHouseId = /*[[${selectedHouseId}]]*/ 0;
+        let activeGuestId = /*[[${selectedGuestId}]]*/ null;
+        let pollInterval = null;
+        let currentPartnerList = [];
+        let lastMsgCount = 0;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (currentHouseId) {
+                loadPartners(currentHouseId);
+            }
+        });
+
+        function onHouseChange(newHouseId) {
+            currentHouseId = Number(newHouseId);
+            activeGuestId = null;
+            lastMsgCount = 0;
+            resetChatView();
+            loadPartners(currentHouseId);
+        }
+
+        function resetChatView() {
+            document.getElementById("active-guest-name").textContent = "Chưa chọn khách";
+            document.getElementById("active-house-name").textContent = "Chọn một khách từ danh sách bên trái để bắt đầu trò chuyện";
+            document.getElementById("btn-view-house").style.display = "none";
+            document.getElementById("chat-messages-box").innerHTML = `
+                <div class="text-center text-muted my-auto" id="no-chat-selected">
+                    <i class="fa-regular fa-comments fs-1 mb-2 opacity-50 d-block"></i>
+                    Vui lòng chọn khách hàng để xem nội dung tin nhắn.
+                </div>
+            `;
+            document.getElementById("host-input-message").disabled = true;
+            document.getElementById("btn-host-send").disabled = true;
+        }
+
+        function loadPartners(houseId) {
+            fetch(`/api/chat/partners?houseId=${houseId}`)
+                .then(res => res.json())
+                .then(partners => {
+                    currentPartnerList = partners || [];
+                    renderPartnersList();
+
+                    if (currentPartnerList.length > 0) {
+                        // Nếu chưa chọn khách, mặc định chọn khách đầu tiên
+                        if (!activeGuestId || !currentPartnerList.some(p => p.userId === activeGuestId)) {
+                            selectGuest(currentPartnerList[0].userId);
+                        } else {
+                            loadMessages();
+                        }
+                    } else {
+                        resetChatView();
+                        document.getElementById("chat-messages-box").innerHTML = `
+                            <div class="text-center text-muted my-auto">
+                                <i class="fa-regular fa-comment-dots fs-1 mb-2 opacity-50 d-block text-secondary"></i>
+                                Chưa có khách hàng nào gửi tin nhắn về căn nhà này.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => console.error("Lỗi tải danh sách khách:", err));
+        }
+
+        function renderPartnersList() {
+            const container = document.getElementById("partners-list-container");
+            const totalCountBadge = document.getElementById("partners-total-count");
+            if (!container) return;
+
+            if (totalCountBadge) totalCountBadge.textContent = currentPartnerList.length;
+
+            if (currentPartnerList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted p-4 small">
+                        <i class="fa-regular fa-comments fs-3 mb-2 opacity-50 d-block"></i>
+                        Chưa có tin nhắn nào cho căn nhà này.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+            currentPartnerList.forEach(p => {
+                const isActive = (p.userId === activeGuestId);
+                const activeClass = isActive ? "active bg-primary text-white" : "bg-white text-dark";
+                const badgeHtml = p.unreadCount > 0 ? `<span class="badge bg-danger rounded-pill">${p.unreadCount}</span>` : "";
+                const textMutedClass = isActive ? "text-white-50" : "text-muted";
+
+                html += `
+                    <button type="button" 
+                            class="list-group-item list-group-item-action p-3 border-bottom ${activeClass} d-flex align-items-start gap-3"
+                            onclick="selectGuest(${p.userId})">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${isActive ? 'bg-white text-primary' : 'bg-light text-secondary'}"
+                             style="width: 38px; height: 38px;">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold small text-truncate">${escapeHtml(p.fullName)}</span>
+                                <small class="${textMutedClass}" style="font-size: 0.7rem;">${p.lastTime || ''}</small>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <small class="${textMutedClass} text-truncate d-inline-block" style="max-width: 170px;">
+                                    ${escapeHtml(p.lastMessage || 'Bắt đầu cuộc trò chuyện...')}
+                                </small>
+                                ${badgeHtml}
+                            </div>
+                        </div>
+                    </button>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function selectGuest(guestId) {
+            activeGuestId = guestId;
+            renderPartnersList();
+
+            const activeGuest = currentPartnerList.find(p => p.userId === guestId);
+            if (activeGuest) {
+                document.getElementById("active-guest-name").textContent = activeGuest.fullName;
+                const sel = document.getElementById("house-selector");
+                const houseName = sel.options[sel.selectedIndex].text;
+                document.getElementById("active-house-name").textContent = `Về căn nhà: ${houseName}`;
+                const btnView = document.getElementById("btn-view-house");
+                btnView.href = `/houses/${currentHouseId}`;
+                btnView.style.display = "inline-block";
+            }
+
+            document.getElementById("host-input-message").disabled = false;
+            document.getElementById("btn-host-send").disabled = false;
+            document.getElementById("host-input-message").focus();
+
+            lastMsgCount = 0;
+            loadMessages();
+
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(loadMessages, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function loadMessages() {
+            if (!currentHouseId || !activeGuestId) return;
+
+            fetch(`/api/chat/messages?houseId=${currentHouseId}&otherUserId=${activeGuestId}`)
+                .then(res => res.json())
+                .then(messages => {
+                    if (!messages || !Array.isArray(messages)) return;
+                    renderMessages(messages);
+
+                    // Đánh dấu đã đọc
+                    fetch(`/api/chat/mark-read`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ houseId: currentHouseId, otherUserId: activeGuestId })
+                    });
+                })
+                .catch(err => console.error("Lỗi nạp tin nhắn:", err));
+        }
+
+        function renderMessages(messages) {
+            const box = document.getElementById("chat-messages-box");
+            if (!box) return;
+
+            if (messages.length === 0) {
+                box.innerHTML = `
+                    <div class="text-center text-muted my-auto">
+                        <i class="fa-regular fa-comment-dots fs-1 mb-2 opacity-50 d-block text-secondary"></i>
+                        Chưa có tin nhắn nào. Hãy gửi lời chào đến khách hàng!
+                    </div>
+                `;
+                lastMsgCount = 0;
+                return;
+            }
+
+            let html = "";
+            messages.forEach(msg => {
+                const isMine = msg.isMine;
+                const bubbleBg = isMine ? "bg-primary text-white" : "bg-white text-dark shadow-sm";
+                const alignSelf = isMine ? "align-self-end" : "align-self-start";
+                const borderRadius = isMine ? "border-radius: 14px 14px 2px 14px;" : "border-radius: 14px 14px 14px 2px;";
+                const timeColor = isMine ? "text-white-50" : "text-muted";
+
+                html += `
+                    <div class="d-flex flex-column ${alignSelf}" style="max-width: 75%;">
+                        <div class="p-2 px-3 ${bubbleBg}" style="${borderRadius}; word-break: break-word; font-size: 0.95rem;">
+                            ${escapeHtml(msg.content)}
+                        </div>
+                        <div class="small ${timeColor} px-1 mt-1" style="font-size: 0.72rem; align-self: ${isMine ? 'flex-end' : 'flex-start'};">
+                            ${msg.createdAt || ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            box.innerHTML = html;
+
+            if (messages.length !== lastMsgCount) {
+                box.scrollTop = box.scrollHeight;
+                lastMsgCount = messages.length;
+            }
+        }
+
+        function handleHostSendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById("host-input-message");
+            const content = input.value.trim();
+            if (!content || !currentHouseId || !activeGuestId) return;
+
+            const btn = document.getElementById("btn-host-send");
+            btn.disabled = true;
+
+            fetch("/api/chat/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    houseId: currentHouseId,
+                    receiverId: activeGuestId,
+                    content: content
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    input.value = "";
+                    loadMessages();
+                    loadPartners(currentHouseId);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                console.error("Lỗi gửi tin:", err);
+            });
+        }
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>

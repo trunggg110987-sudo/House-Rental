@@ -95,6 +95,14 @@
                                 Xem chi tiết
                             </a>
 
+                            <!-- Tin nhắn của khách -->
+                            <a th:href="@{'/host/messages'(houseId=${h.id})}"
+                               class="btn btn-outline-success btn-sm flex-fill rounded-pill fw-bold"
+                               title="Xem tin nhắn từ khách về căn nhà này">
+                                <i class="fa-solid fa-comments me-1"></i>
+                                Tin Nhắn
+                            </a>
+
                             <!-- Sửa tin -->
                             <a th:href="@{'/houses/' + ${h.id} + '/edit'}"
                                class="btn btn-outline-warning btn-sm flex-fill rounded-pill fw-bold">
