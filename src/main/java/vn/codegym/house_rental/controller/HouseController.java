@@ -11,11 +11,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.codegym.house_rental.model.Booking;
 import vn.codegym.house_rental.model.House;
 import vn.codegym.house_rental.model.User;
+import vn.codegym.house_rental.model.Review;
 import vn.codegym.house_rental.service.CategoryService;
 import vn.codegym.house_rental.service.FileStorageService;
 import vn.codegym.house_rental.service.HouseService;
 import vn.codegym.house_rental.service.UserService;
 import vn.codegym.house_rental.service.HouseStatusPeriodService;
+import vn.codegym.house_rental.service.ReviewService;
 
 import jakarta.validation.Valid;
 
@@ -46,17 +48,68 @@ public class HouseController {
     @Autowired
     private HouseStatusPeriodService houseStatusPeriodService;
 
+    @Autowired
+    private ReviewService reviewService;
+
     // Xem chi tiết nhà cho thuê
     @GetMapping("/{id}")
-    public String detail(@PathVariable("id") Long id, Model model) {
-        Optional<House> houseOptional = houseService.findById(id);
+    public String detail(
+            @PathVariable("id") Long id,
+            @RequestParam(
+                    name = "reviewPage",
+                    defaultValue = "0"
+            ) int reviewPage,
+            Model model) {
+
+        Optional<House> houseOptional =
+                houseService.findById(id);
+
         if (houseOptional.isEmpty()) {
             return "redirect:/";
         }
+
         House house = houseOptional.get();
-        model.addAttribute("house", house);
-        model.addAttribute("booking", new Booking());
-        model.addAttribute("statusPeriods", houseService.getStatusPeriods(house));
+
+        // =====================================================
+        // THÔNG TIN NHÀ
+        // =====================================================
+
+        model.addAttribute(
+                "house",
+                house
+        );
+
+        model.addAttribute(
+                "booking",
+                new Booking()
+        );
+
+        model.addAttribute(
+                "statusPeriods",
+                houseService.getStatusPeriods(house)
+        );
+
+
+        // =====================================================
+        // REVIEW CARD 43
+        // =====================================================
+
+        Page<Review> reviewPageData =
+                reviewService.getReviewsByHouse(
+                        house.getId(),
+                        reviewPage,
+                        5
+                );
+
+        model.addAttribute("reviews", reviewPageData.getContent());
+        model.addAttribute("reviewPage", reviewPage);
+        model.addAttribute("reviewTotalPages", reviewPageData.getTotalPages());
+
+        double averageRating =
+                reviewService.getAverageRatingByHouse(house.getId());
+
+        model.addAttribute("averageRating", averageRating);
+
         return "house/detail";
     }
 
