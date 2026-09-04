@@ -619,18 +619,20 @@ public class BookingController {
                         currentUser.getId()
                 );
 
+        // Lọc các nhận xét chưa bị ẩn để tính điểm trung bình, phân bố sao và số lần đánh giá (Task 44)
+        List<Review> visibleReviews = reviews.stream()
+                .filter(r -> !Boolean.TRUE.equals(r.getHidden()))
+                .toList();
 
         double avgRating =
                 reviewService.getAverageRating(
-                        reviews
+                        visibleReviews
                 );
-
 
         Map<Integer, Integer> starDist =
                 reviewService.getStarDistribution(
-                        reviews
+                        visibleReviews
                 );
-
 
         model.addAttribute(
                 "reviews",
@@ -649,9 +651,8 @@ public class BookingController {
 
         model.addAttribute(
                 "totalReviews",
-                reviews.size()
+                visibleReviews.size()
         );
-
 
         return "booking/host_reviews";
     }
@@ -711,6 +712,7 @@ public class BookingController {
     public String rateBooking(
             @PathVariable("id") Long bookingId,
             @RequestParam("rating") Integer rating,
+            @RequestParam(value = "comment", required = false) String comment,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -720,7 +722,7 @@ public class BookingController {
         }
 
         try {
-            reviewService.rateBooking(bookingId, rating, currentUser);
+            reviewService.rateBooking(bookingId, rating, comment, currentUser);
             redirectAttributes.addFlashAttribute(
                     "successMessage",
                     "Đánh giá căn nhà thành công! Cảm ơn bạn đã đánh giá dịch vụ."

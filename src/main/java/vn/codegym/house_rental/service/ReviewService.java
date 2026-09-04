@@ -32,7 +32,7 @@ public class ReviewService {
         return reviewRepository.findReviewsByHostId(hostId);
     }
 
-    public Review rateBooking(Long bookingId, Integer rating, User renter) {
+    public Review rateBooking(Long bookingId, Integer rating, String comment, User renter) {
         if (renter == null || renter.getId() == null) {
             throw new IllegalStateException("Vui lòng đăng nhập để đánh giá.");
         }
@@ -68,7 +68,21 @@ public class ReviewService {
                     .build();
         }
 
+        // Bổ sung phần nhận xét giới hạn trong 100 từ (Task 45)
+        if (comment != null && !comment.trim().isEmpty()) {
+            String trimmedComment = comment.trim();
+            String[] words = trimmedComment.split("\\s+");
+            if (words.length > 100) {
+                throw new IllegalArgumentException("Nhận xét không được vượt quá 100 từ (hiện tại: " + words.length + " từ).");
+            }
+            review.setComment(trimmedComment);
+        }
+
         return reviewRepository.save(review);
+    }
+
+    public Review rateBooking(Long bookingId, Integer rating, User renter) {
+        return rateBooking(bookingId, rating, null, renter);
     }
 
     public Map<Long, Review> getReviewsMapByRenter(User renter) {
@@ -116,10 +130,20 @@ public class ReviewService {
             return 0.0;
         }
         double sum = 0.0;
+        int count = 0;
         for (Review r : reviews) {
-            sum += r.getRating();
+            if (Boolean.TRUE.equals(r.getHidden())) {
+                continue;
+            }
+            if (r.getRating() != null) {
+                sum += r.getRating();
+                count++;
+            }
         }
-        return Math.round((sum / reviews.size()) * 10.0) / 10.0;
+        if (count == 0) {
+            return 0.0;
+        }
+        return Math.round((sum / count) * 10.0) / 10.0;
     }
 
     public Map<Integer, Integer> getStarDistribution(List<Review> reviews) {
@@ -129,9 +153,14 @@ public class ReviewService {
         }
         if (reviews != null) {
             for (Review r : reviews) {
-                int rating = r.getRating();
-                if (rating >= 1 && rating <= 5) {
-                    distribution.put(rating, distribution.get(rating) + 1);
+                if (Boolean.TRUE.equals(r.getHidden())) {
+                    continue;
+                }
+                if (r.getRating() != null) {
+                    int rating = r.getRating();
+                    if (rating >= 1 && rating <= 5) {
+                        distribution.put(rating, distribution.get(rating) + 1);
+                    }
                 }
             }
         }
